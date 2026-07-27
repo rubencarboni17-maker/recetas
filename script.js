@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(ingTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ul><li>Ingrediente 1</li><li>Ingrediente 2</li></ul>';
+                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li><li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li><li>1 pizca de sal</li><li>1 pizca de pimienta</li><li>2 tortillas de trigo</li><li>Hojas de albahaca (opcional)</li><li>Un chorrito de aceite de oliva (para engrasar el molde)</li></ul>';
                 break;
             case 'preparation':
                 const prepTitle = document.createElement('div');
