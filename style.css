@@ -21,7 +21,7 @@ body {
 /* Panel de control superior */
 .control-panel {
     background: #fff;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.5rem;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
@@ -29,7 +29,7 @@ body {
 }
 
 .control-panel h1 {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     margin-bottom: 0.5rem;
     color: var(--primary-color);
     text-align: center;
@@ -111,7 +111,7 @@ input[type="color"] {
     background-color: var(--accent-color);
     color: #fff;
     border: none;
-    padding: 0.6rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
@@ -122,13 +122,13 @@ input[type="color"] {
     background-color: #d35400;
 }
 
-/* Contenedor de la hoja */
+/* Contenedor de la hoja centrado */
 .page-container {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    padding: 1.5rem 0.5rem;
+    align-items: center;
+    padding: 2rem 1rem;
 }
 
 .recipe-sheet {
@@ -140,7 +140,7 @@ input[type="color"] {
     background-position: center;
     background-repeat: no-repeat;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    padding: 2.5rem;
+    padding: 3rem;
     border-radius: 8px;
     position: relative;
 }
@@ -200,6 +200,7 @@ input[type="color"] {
 
     .page-container {
         padding: 0;
+        display: block;
     }
 
     .recipe-sheet {
