@@ -31,12 +31,38 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.appendChild(block);
     }
 
-    // Método por Clic en la barra lateral
-    const actionButtons = document.querySelectorAll('.action-btn');
-    actionButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const type = btn.getAttribute('data-type');
+    // Configuración de elementos arrastrables
+    const dragItems = document.querySelectorAll('.drag-item');
+    
+    dragItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const type = item.getAttribute('data-type');
             addBlockToSheet(type);
+        });
+
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
+            e.dataTransfer.dropEffect = 'copy';
+        });
+    });
+
+    // Manejo estricto de eventos de arrastre para evitar el círculo rojo
+    [recipeSheet, dropZone].forEach(zone => {
+        zone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+        });
+
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (type) {
+                addBlockToSheet(type);
+            }
         });
     });
 
@@ -52,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteBtn.onclick = () => wrapper.remove();
         wrapper.appendChild(deleteBtn);
 
-        // Si es ingredientes o preparación, agregamos un botón de "Auto-formatear texto pegado"
+        // Si es ingredientes o preparación, agregamos el botón de Auto-formatear texto de PDF
         if (type === 'ingredients' || type === 'preparation') {
             const formatBtn = document.createElement('button');
             formatBtn.className = 'format-btn';
@@ -116,28 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function autoFormatBlock(contentElement, type) {
         let rawText = contentElement.innerText || contentElement.textContent;
 
-        // 1. Limpiar caracteres corruptos típicos de casillas de PDF (cuadros, símbolos extraños)
-        rawText = rawText.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, ''); // Remueve casillas y caracteres inválidos
-        
-        // 2. Limpiar espacios múltiples o viñetas sueltas al inicio
+        rawText = rawText.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, ''); 
         rawText = rawText.replace(/^[•\-\*]\s*/gm, '');
 
-        // 3. Separar por líneas o intentar detectar elementos si se pegó todo seguido
         let lines = rawText.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
 
-        // Si el usuario pegó todo en una sola línea corrida (muy común al copiar de Adobe Reader)
-        if (lines.length === 1 && lines[0].length > 50) {
-            // Intentamos detectar patrones numéricos o de ingredientes comunes para separar
-            // O simplemente dejamos que el usuario lo tenga limpio en párrafos
-            lines = [lines[0]]; 
-        }
-
-        // Construir la lista HTML limpia
         const tag = (type === 'ingredients') ? 'ul' : 'ol';
         let htmlOutput = `<${tag}>`;
         lines.forEach(line => {
-            // Limpiamos basura extra residual
-            let cleanLine = line.replace(/^\d+[\.\)]\s*/, ''); // quita numeraciones viejas si las hubiera para regenerarlas ordenadas
+            let cleanLine = line.replace(/^\d+[\.\)]\s*/, '');
             if (cleanLine) {
                 htmlOutput += `<li>${cleanLine}</li>`;
             }
