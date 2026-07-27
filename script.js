@@ -21,36 +21,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica de Drag and Drop
+    function addBlockToSheet(type) {
+        // Quitar mensaje inicial si existe
+        const placeholder = dropZone.querySelector('.placeholder-msg');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        const block = createBlock(type);
+        dropZone.appendChild(block);
+    }
+
+    // 1. Método por Clic (100% efectivo y rápido)
     const dragItems = document.querySelectorAll('.drag-item');
     
     dragItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const type = item.getAttribute('data-type');
+            addBlockToSheet(type);
+        });
+
+        // 2. Método alternativo por Arrastre (por si el navegador lo permite)
         item.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
-            e.dataTransfer.dropEffect = 'copy';
         });
     });
 
-    // Permitir soltar en todo el contenedor de la hoja y la zona de soltado
     [recipeSheet, dropZone].forEach(zone => {
         zone.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Crucial para eliminar el círculo rojo
-            e.dataTransfer.dropEffect = 'copy';
+            e.preventDefault();
         });
 
         zone.addEventListener('drop', (e) => {
             e.preventDefault();
             const type = e.dataTransfer.getData('text/plain');
-            if (!type) return;
-            
-            // Quitar mensaje inicial si existe
-            const placeholder = dropZone.querySelector('.placeholder-msg');
-            if (placeholder) {
-                placeholder.remove();
+            if (type) {
+                addBlockToSheet(type);
             }
-
-            const block = createBlock(type);
-            dropZone.appendChild(block);
         });
     });
 
