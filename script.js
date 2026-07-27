@@ -27,26 +27,31 @@ document.addEventListener('DOMContentLoaded', () => {
     dragItems.forEach(item => {
         item.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
+            e.dataTransfer.dropEffect = 'copy';
         });
     });
 
-    // IMPORTANTE: Prevenir el comportamiento por defecto en dragover y drop
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    });
+    // Permitir soltar en todo el contenedor de la hoja
+    [recipeSheet, dropZone].forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
 
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault(); // Esto elimina el icono de prohibido
-        const type = e.dataTransfer.getData('text/plain');
-        
-        // Quitar mensaje inicial si existe
-        const placeholder = dropZone.querySelector('.placeholder-msg');
-        if (placeholder) {
-            placeholder.remove();
-        }
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (!type) return;
+            
+            // Quitar mensaje inicial si existe
+            const placeholder = dropZone.querySelector('.placeholder-msg');
+            if (placeholder) {
+                placeholder.remove();
+            }
 
-        const block = createBlock(type);
-        dropZone.appendChild(block);
+            const block = createBlock(type);
+            dropZone.appendChild(block);
+        });
     });
 
     function createBlock(type) {
