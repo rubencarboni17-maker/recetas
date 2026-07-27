@@ -11,13 +11,15 @@
 </head>
 <body>
 
+    <!-- Panel de Control y Herramientas (Oculto al imprimir) -->
     <header class="no-print control-panel">
         <h1>Generador de Recetas</h1>
-        <div class="controls-grid">
+        
+        <div class="controls-container">
+            <!-- Selección de Fondos -->
             <div class="control-group">
                 <label for="bgSelect">Fondo:</label>
                 <select id="bgSelect">
-                    <!-- Cambia .jpg por .jpeg aquí abajo si tus archivos reales terminan en .jpeg -->
                     <option value="fondos/fondo_1.jpg">Fondo 1</option>
                     <option value="fondos/fondo_2.jpg">Fondo 2</option>
                     <option value="fondos/fondo_3.jpg">Fondo 3</option>
@@ -28,12 +30,38 @@
                 </select>
             </div>
 
+            <!-- Herramientas de Edición de Texto -->
+            <div class="control-group text-tools">
+                <label>Estilo de Texto:</label>
+                <div class="tools-row">
+                    <button type="button" data-command="bold" title="Negrita"><b>N</b></button>
+                    <button type="button" data-command="italic" title="Cursiva"><i>C</i></button>
+                    <button type="button" data-command="underline" title="Subrayado"><u>S</u></button>
+                    <div class="tool-divider"></div>
+                    <button type="button" data-command="justifyLeft" title="Alinear a la izquierda">Izquierda</button>
+                    <button type="button" data-command="justifyCenter" title="Centrar">Centro</button>
+                    <button type="button" data-command="justifyRight" title="Alinear a la derecha">Derecha</button>
+                    <div class="tool-divider"></div>
+                    <label for="textColor" class="sub-label">Color:</label>
+                    <input type="color" id="textColor" value="#2c3e50" title="Color de texto">
+                    <label for="fontSizeSelect" class="sub-label">Tamaño:</label>
+                    <select id="fontSizeSelect">
+                        <option value="2">Pequeño</option>
+                        <option value="3" selected>Normal</option>
+                        <option value="5">Grande</option>
+                        <option value="6">Muy Grande</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botón PDF -->
             <div class="control-group">
                 <button id="btnPdf" class="btn-primary">Descargar / Guardar PDF</button>
             </div>
         </div>
     </header>
 
+    <!-- Lienzo / Hoja de Receta -->
     <main class="page-container">
         <div id="recipeSheet" class="recipe-sheet">
             <div class="recipe-content">
