@@ -11,7 +11,7 @@
 </head>
 <body>
 
-    <!-- Panel de Control y Herramientas (Oculto al imprimir) -->
+    <!-- Panel de Control Superior -->
     <header class="no-print control-panel">
         <h1>Generador de Recetas</h1>
         
@@ -30,7 +30,7 @@
                 </select>
             </div>
 
-            <!-- Herramientas de Edición de Texto -->
+            <!-- Herramientas de Texto -->
             <div class="control-group text-tools">
                 <label>Estilo de Texto:</label>
                 <div class="tools-row">
@@ -38,12 +38,12 @@
                     <button type="button" data-command="italic" title="Cursiva"><i>C</i></button>
                     <button type="button" data-command="underline" title="Subrayado"><u>S</u></button>
                     <div class="tool-divider"></div>
-                    <button type="button" data-command="justifyLeft" title="Alinear a la izquierda">Izquierda</button>
-                    <button type="button" data-command="justifyCenter" title="Centrar">Centro</button>
-                    <button type="button" data-command="justifyRight" title="Alinear a la derecha">Derecha</button>
+                    <button type="button" data-command="justifyLeft" title="Izquierda">Izquierda</button>
+                    <button type="button" data-command="justifyCenter" title="Centro">Centro</button>
+                    <button type="button" data-command="justifyRight" title="Derecha">Derecha</button>
                     <div class="tool-divider"></div>
                     <label for="textColor" class="sub-label">Color:</label>
-                    <input type="color" id="textColor" value="#2c3e50" title="Color de texto">
+                    <input type="color" id="textColor" value="#2c3e50" title="Color">
                     <label for="fontSizeSelect" class="sub-label">Tamaño:</label>
                     <select id="fontSizeSelect">
                         <option value="2">Pequeño</option>
@@ -61,14 +61,33 @@
         </div>
     </header>
 
-    <!-- Lienzo / Hoja en Blanco -->
-    <main class="page-container">
-        <div id="recipeSheet" class="recipe-sheet">
-            <div class="recipe-content" contenteditable="true">
-                <p>Escribe o pega aquí el contenido de tu receta...</p>
+    <!-- Contenedor Principal con Barra Lateral y Lienzo -->
+    <div class="main-layout">
+        <!-- Barra Lateral de Elementos (Arrastrables) -->
+        <aside class="no-print sidebar">
+            <h3>Elementos</h3>
+            <p class="sidebar-tip">Arrastra al documento:</p>
+            
+            <div class="draggable-items">
+                <div class="drag-item" draggable="true" data-type="title">📌 Título</div>
+                <div class="drag-item" draggable="true" data-type="time">⏱️ Tiempo</div>
+                <div class="drag-item" draggable="true" data-type="complexity">⭐ Complejidad</div>
+                <div class="drag-item" draggable="true" data-type="portions">🍽️ Porciones</div>
+                <div class="drag-item" draggable="true" data-type="ingredients">🥗 Ingredientes</div>
+                <div class="drag-item" draggable="true" data-type="preparation">🍳 Preparación</div>
+                <div class="drag-item" draggable="true" data-type="text">📝 Bloque de Texto</div>
             </div>
-        </div>
-    </main>
+        </aside>
+
+        <!-- Lienzo / Hoja de Receta -->
+        <main class="page-container">
+            <div id="recipeSheet" class="recipe-sheet">
+                <div id="dropZone" class="recipe-content">
+                    <div class="placeholder-msg">Arrastra los elementos aquí para armar tu receta...</div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script src="script.js"></script>
 </body>
