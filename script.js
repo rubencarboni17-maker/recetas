@@ -5,13 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPdf = document.getElementById('btnPdf');
     const textColor = document.getElementById('textColor');
     const fontSizeSelect = document.getElementById('fontSizeSelect');
+    const pdfUpload = document.getElementById('pdfUpload');
 
     // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
     }
 
-    // Cambiar fondo
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
@@ -21,19 +21,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Lógica para leer el PDF directamente usando PDF.js
+    pdfUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = async function () {
+            const typedarray = new Uint8Array(this.result);
+            try {
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                let fullText = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(" ");
+                    fullText += pageText + "\n";
+                }
+
+                // Limpiamos la zona de contenido actual
+                dropZone.innerHTML = '';
+
+                // Procesamos el texto extraído del PDF para crear los bloques automáticamente
+                parseAndRenderPdfContent(fullText);
+
+            } catch (error) {
+                console.error("Error al leer el PDF:", error);
+                alert("No se pudo leer el archivo PDF. Asegúrate de que sea un PDF válido.");
+            }
+        };
+    });
+
+    function parseAndRenderPdfContent(text) {
+        // Limpiamos caracteres basura típicos de conversión
+        let cleanText = text.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
+
+        // Creamos un bloque de ingredientes automático con el texto extraído
+        const block = document.createElement('div');
+        block.className = 'recipe-block';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = () => block.remove();
+        block.appendChild(deleteBtn);
+
+        const ingTitle = document.createElement('div');
+        ingTitle.className = 'block-section-title';
+        ingTitle.setAttribute('contenteditable', 'true');
+        ingTitle.innerText = 'Ingredientes (Importados del PDF)';
+        block.appendChild(ingTitle);
+
+        const content = document.createElement('div');
+        content.className = 'block-text';
+        content.setAttribute('contenteditable', 'true');
+
+        // Intentamos separar los ingredientes por palabras clave o unidades comunes
+        let splitPattern = /(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|cucharadita|taza|pizca|huevos|tortilla|hojas|chorrito)|Un\s+chorrito|Hojas\s+de)/gi;
+        let parts = cleanText.split(splitPattern).map(p => p.trim()).filter(p => p.length > 0);
+
+        let htmlOutput = '<ul>';
+        if (parts.length > 1) {
+            parts.forEach(part => {
+                htmlOutput += `<li>${part}</li>`;
+            });
+        } else {
+            htmlOutput += `<li>${cleanText}</li>`;
+        }
+        htmlOutput += '</ul>';
+
+        content.innerHTML = htmlOutput;
+        block.appendChild(content);
+        dropZone.appendChild(block);
+    }
+
     function addBlockToSheet(type) {
         const placeholder = dropZone.querySelector('.placeholder-msg');
         if (placeholder) {
             placeholder.remove();
         }
-
         const block = createBlock(type);
         dropZone.appendChild(block);
     }
 
-    // Configuración por clic en los elementos de la barra lateral
     const dragItems = document.querySelectorAll('.drag-item');
-    
     dragItems.forEach(item => {
         item.addEventListener('click', () => {
             const type = item.getAttribute('data-type');
@@ -45,26 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
 
-        // Botón para eliminar bloque
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
         deleteBtn.innerHTML = '×';
-        deleteBtn.title = 'Eliminar elemento';
         deleteBtn.onclick = () => wrapper.remove();
         wrapper.appendChild(deleteBtn);
 
         const content = document.createElement('div');
         content.setAttribute('contenteditable', 'true');
-
-        // Si es ingredientes o preparación, agregamos el botón de Auto-formatear texto
-        if (type === 'ingredients' || type === 'preparation') {
-            const formatBtn = document.createElement('button');
-            formatBtn.className = 'format-btn';
-            formatBtn.innerHTML = '✨ Limpiar y Formatear';
-            formatBtn.title = 'Limpia símbolos raros y convierte el texto pegado en lista';
-            formatBtn.onclick = () => autoFormatBlock(content, type);
-            wrapper.appendChild(formatBtn);
-        }
 
         switch (type) {
             case 'title':
@@ -113,50 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return wrapper;
     }
 
-    // Función inteligente mejorada para separar ingredientes pegados de corrido
-    function autoFormatBlock(contentElement, type) {
-        let rawText = contentElement.innerText || contentElement.textContent;
-
-        // 1. Limpiar caracteres corruptos de casillas de PDF
-        rawText = rawText.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, ''); 
-        rawText = rawText.replace(/^[•\-\*]\s*/gm, '').trim();
-
-        let lines = rawText.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
-
-        // Si el usuario pegó todo en una sola línea continua, aplicamos separación inteligente por patrones
-        if (lines.length === 1 && type === 'ingredients') {
-            let singleText = lines[0];
-            
-            // Expresión para separar cuando un número va precedido por otro ingrediente (ej: "feta 6 huevos", "wrap) 1 pizca", "sal 1 pizca", "pimienta 2", "trigo hojas", "opcional) Un")
-            // Patrón robusto para ingredientes comunes en español
-            const matches = singleText.match(/(?:\d+[\s\w\(\)]*?(?=\s+\d+\s+(?:gr|huez|huevos|cucharada|pizca|tortillas|hojas|un|chorrito)|\s+(?:hojas|un|chorrito)\b|$))/gi);
-            
-            if (matches && matches.length > 1) {
-                lines = matches.map(m => m.trim()).filter(m => m.length > 0);
-            } else {
-                // Fallot alternativo: separar buscando números clave seguidos de unidades
-                let splitPattern = /(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|cucharadita|taza|pizca|huevos|tortilla|hojas|chorrito)|Un\s+chorrito|Hojas\s+de)/gi;
-                let parts = singleText.split(splitPattern).map(p => p.trim()).filter(p => p.length > 0);
-                if (parts.length > 1) {
-                    lines = parts;
-                }
-            }
-        }
-
-        const tag = (type === 'ingredients') ? 'ul' : 'ol';
-        let htmlOutput = `<${tag}>`;
-        lines.forEach(line => {
-            let cleanLine = line.replace(/^\d+[\.\)]\s*/, '').trim();
-            if (cleanLine) {
-                htmlOutput += `<li>${cleanLine}</li>`;
-            }
-        });
-        htmlOutput += `</${tag}>`;
-
-        contentElement.innerHTML = htmlOutput;
-    }
-
-    // Comandos de formato de texto
     document.querySelectorAll('.tools-row button[data-command]').forEach(button => {
         button.addEventListener('click', () => {
             const command = button.getAttribute('data-command');
