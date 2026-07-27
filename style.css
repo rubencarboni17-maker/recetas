@@ -145,48 +145,14 @@ input[type="color"] {
     position: relative;
 }
 
-.recipe-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.2rem;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-    border-bottom: 2px solid var(--accent-color);
-    padding-bottom: 0.5rem;
+.recipe-content {
     outline: none;
-}
-
-.recipe-meta {
-    display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-    color: #555;
-    outline: none;
-}
-
-.recipe-section {
-    margin-bottom: 1.5rem;
-}
-
-.recipe-section h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.4rem;
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-.editable-block {
-    outline: none;
+    min-height: 100%;
     line-height: 1.6;
 }
 
-.editable-block ul, .editable-block ol {
-    padding-left: 1.5rem;
-}
-
 [contenteditable="true"]:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.01);
 }
 
 @media print {
