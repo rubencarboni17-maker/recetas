@@ -7,21 +7,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
+    // Variable para almacenar el fondo del PDF importado
+    let currentCustomBg = '';
+
     // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
     }
 
+    // Cambiar fondo desde el selector desplegable
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
             recipeSheet.style.backgroundImage = `url('${selectedBg}')`;
+            recipeSheet.style.backgroundSize = 'cover';
         } else {
             recipeSheet.style.backgroundImage = 'none';
         }
     });
 
-    // Lógica para renderizar el PDF completo como la imagen exacta de la hoja
+    // Lógica para importar el PDF como imagen de fondo exacta
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -31,11 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = async function () {
             const typedarray = new Uint8Array(this.result);
             try {
-                // Cargar el PDF usando PDF.js
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                const page = await pdf.getPage(1); // Tomamos la primera página
+                const page = await pdf.getPage(1); // Primera página del PDF
 
-                const viewport = page.getViewport({ scale: 2.0 }); // Escala alta para nitidez perfecta
+                const viewport = page.getViewport({ scale: 2.0 }); // Alta resolución
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
@@ -46,19 +50,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     viewport: viewport
                 }).promise;
 
-                // Convertir la página a imagen
-                const imageUrl = canvas.toDataURL('image/png');
+                // Guardar y aplicar la imagen generada del PDF
+                currentCustomBg = canvas.toDataURL('image/png');
 
-                // Vaciamos completamente el contenido de la hoja para que no se encime nada
+                // Vaciamos el contenido de texto automático para dejar espacio al diseño original del PDF
                 dropZone.innerHTML = '';
 
-                // Aplicamos la imagen del PDF como el fondo exacto de la hoja de recetas
-                recipeSheet.style.backgroundImage = `url('${imageUrl}')`;
-                recipeSheet.style.backgroundSize = 'contain'; // Mantiene la proporción original del PDF
+                // Aplicar como fondo limpio
+                recipeSheet.style.backgroundImage = `url('${currentCustomBg}')`;
+                recipeSheet.style.backgroundSize = 'contain';
                 recipeSheet.style.backgroundRepeat = 'no-repeat';
                 recipeSheet.style.backgroundPosition = 'center';
                 
-                // Opcional: quitamos el color/fondo secundario para que luzca limpio
+                // Desmarcar el select para indicar que se está usando el PDF importado
                 bgSelect.value = "";
 
             } catch (error) {
@@ -137,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             default:
                 content.className = 'block-text';
-                content.innerText = 'Escribe tu texto hier...';
+                content.innerText = 'Escribe tu texto aquí...';
                 break;
         }
 
