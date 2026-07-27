@@ -30,12 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // IMPORTANTE: Prevenir el comportamiento por defecto en dragover y drop
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
     });
 
     dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Esto elimina el icono de prohibido
         const type = e.dataTransfer.getData('text/plain');
         
         // Quitar mensaje inicial si existe
