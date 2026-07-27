@@ -21,7 +21,7 @@ body {
 /* Panel de control superior */
 .control-panel {
     background: #fff;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     position: sticky;
     top: 0;
@@ -29,13 +29,13 @@ body {
 }
 
 .control-panel h1 {
-    font-size: 1.25rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
     color: var(--primary-color);
     text-align: center;
 }
 
-.controls-grid {
+.controls-container {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -46,21 +46,65 @@ body {
 .control-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    width: 100%;
-    max-width: 300px;
+    gap: 0.2rem;
 }
 
 .control-group label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
 }
 
-select {
-    padding: 0.5rem;
+select, input[type="color"] {
+    padding: 0.4rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-family: inherit;
+    font-size: 0.85rem;
+}
+
+input[type="color"] {
+    height: 32px;
+    width: 40px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 0.3rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.tools-row button {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.tools-row button:hover {
+    background: #e9ecef;
+}
+
+.tool-divider {
+    width: 1px;
+    height: 20px;
+    background: #ccc;
+    margin: 0 0.2rem;
+}
+
+.sub-label {
+    font-size: 0.75rem;
+    color: #666;
+    margin-left: 0.2rem;
 }
 
 .btn-primary {
@@ -72,7 +116,6 @@ select {
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
-    width: 100%;
 }
 
 .btn-primary:hover {
@@ -88,11 +131,10 @@ select {
     padding: 1.5rem 0.5rem;
 }
 
-/* Hoja de receta (Simulación formato A4/Carta responsiva) */
 .recipe-sheet {
     width: 100%;
     max-width: 800px;
-    min-height: 1056px; /* Proporción estándar vertical */
+    min-height: 1056px;
     background-color: #ffffff;
     background-size: cover;
     background-position: center;
@@ -103,7 +145,6 @@ select {
     position: relative;
 }
 
-/* Tipografía interna de la receta */
 .recipe-title {
     font-family: 'Playfair Display', serif;
     font-size: 2.2rem;
@@ -143,13 +184,11 @@ select {
     padding-left: 1.5rem;
 }
 
-/* Efecto visual al enfocar áreas editables */
 [contenteditable="true"]:hover {
     background-color: rgba(0, 0, 0, 0.02);
     border-radius: 4px;
 }
 
-/* CONFIGURACIÓN DE IMPRESIÓN PARA PDF PERFECTO */
 @media print {
     .no-print {
         display: none !important;
