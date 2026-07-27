@@ -31,38 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.appendChild(block);
     }
 
-    // Configuración de elementos arrastrables
+    // Configuración por clic en los elementos de la barra lateral (eliminando el drag and drop conflictivo)
     const dragItems = document.querySelectorAll('.drag-item');
     
     dragItems.forEach(item => {
         item.addEventListener('click', () => {
             const type = item.getAttribute('data-type');
             addBlockToSheet(type);
-        });
-
-        item.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
-            e.dataTransfer.dropEffect = 'copy';
-        });
-    });
-
-    // Manejo estricto de eventos de arrastre para evitar el círculo rojo
-    [recipeSheet, dropZone].forEach(zone => {
-        zone.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-        });
-
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-        });
-
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const type = e.dataTransfer.getData('text/plain');
-            if (type) {
-                addBlockToSheet(type);
-            }
         });
     });
 
@@ -78,6 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteBtn.onclick = () => wrapper.remove();
         wrapper.appendChild(deleteBtn);
 
+        const content = document.createElement('div');
+        content.setAttribute('contenteditable', 'true');
+
         // Si es ingredientes o preparación, agregamos el botón de Auto-formatear texto de PDF
         if (type === 'ingredients' || type === 'preparation') {
             const formatBtn = document.createElement('button');
@@ -87,9 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
             formatBtn.onclick = () => autoFormatBlock(content, type);
             wrapper.appendChild(formatBtn);
         }
-
-        const content = document.createElement('div');
-        content.setAttribute('contenteditable', 'true');
 
         switch (type) {
             case 'title':
