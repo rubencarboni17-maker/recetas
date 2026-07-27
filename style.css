@@ -1,0 +1,176 @@
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #e67e22;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Panel de control superior */
+.control-panel {
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.control-panel h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.controls-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.control-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+select {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #d35400;
+}
+
+/* Contenedor de la hoja */
+.page-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.5rem 0.5rem;
+}
+
+/* Hoja de receta (Simulación formato A4/Carta responsiva) */
+.recipe-sheet {
+    width: 100%;
+    max-width: 800px;
+    min-height: 1056px; /* Proporción estándar vertical */
+    background-color: #ffffff;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 2.5rem;
+    border-radius: 8px;
+    position: relative;
+}
+
+/* Tipografía interna de la receta */
+.recipe-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+    outline: none;
+}
+
+.recipe-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    color: #555;
+    outline: none;
+}
+
+.recipe-section {
+    margin-bottom: 1.5rem;
+}
+
+.recipe-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.editable-block {
+    outline: none;
+    line-height: 1.6;
+}
+
+.editable-block ul, .editable-block ol {
+    padding-left: 1.5rem;
+}
+
+/* Efecto visual al enfocar áreas editables */
+[contenteditable="true"]:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+}
+
+/* CONFIGURACIÓN DE IMPRESIÓN PARA PDF PERFECTO */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: none;
+    }
+
+    .page-container {
+        padding: 0;
+    }
+
+    .recipe-sheet {
+        box-shadow: none;
+        border-radius: 0;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        padding: 1.5cm;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
