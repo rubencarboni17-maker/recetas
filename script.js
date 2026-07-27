@@ -21,12 +21,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Agregar elementos mediante Clic
-    const actionButtons = document.querySelectorAll('.action-btn');
+    // Lógica de Drag and Drop
+    const dragItems = document.querySelectorAll('.drag-item');
     
-    actionButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const type = btn.getAttribute('data-type');
+    dragItems.forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
+            e.dataTransfer.dropEffect = 'copy';
+        });
+    });
+
+    // Permitir soltar en todo el contenedor de la hoja y la zona de soltado
+    [recipeSheet, dropZone].forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Crucial para eliminar el círculo rojo
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (!type) return;
             
             // Quitar mensaje inicial si existe
             const placeholder = dropZone.querySelector('.placeholder-msg');
@@ -79,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(ingTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li><li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li><li>1 pizca de sal</li><li>1 pizca de pimienta</li><li>2 tortillas de trigo</li><li>Hojas de albahaca (opcional)</li><li>Un chorrito de aceite de oliva (para engrasar el molde)</li></ul>';
+                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li><li>1 cucharada de aceite de oliva</li><li>1 pizca de sal</li><li>1 pizca de pimienta</li><li>2 tortillas de trigo</li></ul>';
                 break;
             case 'preparation':
                 const prepTitle = document.createElement('div');
