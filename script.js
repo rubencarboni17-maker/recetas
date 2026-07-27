@@ -2,8 +2,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgSelect = document.getElementById('bgSelect');
     const recipeSheet = document.getElementById('recipeSheet');
     const btnPdf = document.getElementById('btnPdf');
+    const textColor = document.getElementById('textColor');
+    const fontSizeSelect = document.getElementById('fontSizeSelect');
 
-    // Cambiar fondo según la selección
+    // Fondo inicial automático
+    if (bgSelect.value) {
+        recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
+    }
+
+    // Cambiar fondo
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
@@ -13,7 +20,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Disparar la ventana de impresión nativa (Guardar como PDF)
+    // Comandos de formato de texto (Negrita, Cursiva, Alineación, etc.)
+    document.querySelectorAll('.tools-row button[data-command]').forEach(button => {
+        button.addEventListener('click', () => {
+            const command = button.getAttribute('data-command');
+            document.execCommand(command, false, null);
+        });
+    });
+
+    // Cambiar color de texto seleccionado
+    textColor.addEventListener('input', (e) => {
+        document.execCommand('foreColor', false, e.target.value);
+    });
+
+    // Cambiar tamaño de texto seleccionado
+    fontSizeSelect.addEventListener('change', (e) => {
+        document.execCommand('fontSize', false, e.target.value);
+    });
+
+    // Descargar PDF
     btnPdf.addEventListener('click', () => {
         window.print();
     });
