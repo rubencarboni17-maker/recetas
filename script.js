@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.appendChild(block);
     }
 
-    // Configuración por clic en los elementos de la barra lateral (eliminando el drag and drop conflictivo)
+    // Configuración por clic en los elementos de la barra lateral
     const dragItems = document.querySelectorAll('.drag-item');
     
     dragItems.forEach(item => {
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = document.createElement('div');
         content.setAttribute('contenteditable', 'true');
 
-        // Si es ingredientes o preparación, agregamos el botón de Auto-formatear texto de PDF
+        // Si es ingredientes o preparación, agregamos el botón de Auto-formatear texto
         if (type === 'ingredients' || type === 'preparation') {
             const formatBtn = document.createElement('button');
             formatBtn.className = 'format-btn';
@@ -113,19 +113,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return wrapper;
     }
 
-    // Función inteligente para limpiar caracteres extraños de PDFs y estructurar en lista
+    // Función inteligente mejorada para separar ingredientes pegados de corrido
     function autoFormatBlock(contentElement, type) {
         let rawText = contentElement.innerText || contentElement.textContent;
 
+        // 1. Limpiar caracteres corruptos de casillas de PDF
         rawText = rawText.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, ''); 
-        rawText = rawText.replace(/^[•\-\*]\s*/gm, '');
+        rawText = rawText.replace(/^[•\-\*]\s*/gm, '').trim();
 
         let lines = rawText.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
+
+        // Si el usuario pegó todo en una sola línea continua, aplicamos separación inteligente por patrones
+        if (lines.length === 1 && type === 'ingredients') {
+            let singleText = lines[0];
+            
+            // Expresión para separar cuando un número va precedido por otro ingrediente (ej: "feta 6 huevos", "wrap) 1 pizca", "sal 1 pizca", "pimienta 2", "trigo hojas", "opcional) Un")
+            // Patrón robusto para ingredientes comunes en español
+            const matches = singleText.match(/(?:\d+[\s\w\(\)]*?(?=\s+\d+\s+(?:gr|huez|huevos|cucharada|pizca|tortillas|hojas|un|chorrito)|\s+(?:hojas|un|chorrito)\b|$))/gi);
+            
+            if (matches && matches.length > 1) {
+                lines = matches.map(m => m.trim()).filter(m => m.length > 0);
+            } else {
+                // Fallot alternativo: separar buscando números clave seguidos de unidades
+                let splitPattern = /(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|cucharadita|taza|pizca|huevos|tortilla|hojas|chorrito)|Un\s+chorrito|Hojas\s+de)/gi;
+                let parts = singleText.split(splitPattern).map(p => p.trim()).filter(p => p.length > 0);
+                if (parts.length > 1) {
+                    lines = parts;
+                }
+            }
+        }
 
         const tag = (type === 'ingredients') ? 'ul' : 'ol';
         let htmlOutput = `<${tag}>`;
         lines.forEach(line => {
-            let cleanLine = line.replace(/^\d+[\.\)]\s*/, '');
+            let cleanLine = line.replace(/^\d+[\.\)]\s*/, '').trim();
             if (cleanLine) {
                 htmlOutput += `<li>${cleanLine}</li>`;
             }
