@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica para importar el PDF como Imagen de Fondo de la hoja
+    // Lógica para renderizar el PDF completo como la imagen exacta de la hoja
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 const page = await pdf.getPage(1); // Tomamos la primera página
 
-                const viewport = page.getViewport({ scale: 2.0 }); // Escala alta para mayor nitidez
+                const viewport = page.getViewport({ scale: 2.0 }); // Escala alta para nitidez perfecta
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
@@ -46,19 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     viewport: viewport
                 }).promise;
 
-                // Convertir la página renderizada a una URL de imagen (Data URL)
+                // Convertir la página a imagen
                 const imageUrl = canvas.toDataURL('image/png');
 
-                // Asignar la imagen directamente como fondo de la hoja de recetas
-                recipeSheet.style.backgroundImage = `url('${imageUrl}')`;
-                recipeSheet.style.backgroundSize = 'cover';
-                recipeSheet.style.backgroundPosition = 'center';
+                // Vaciamos completamente el contenido de la hoja para que no se encime nada
+                dropZone.innerHTML = '';
 
-                // Opcional: limpiar el select de fondos predeterminados para que no interfiera
+                // Aplicamos la imagen del PDF como el fondo exacto de la hoja de recetas
+                recipeSheet.style.backgroundImage = `url('${imageUrl}')`;
+                recipeSheet.style.backgroundSize = 'contain'; // Mantiene la proporción original del PDF
+                recipeSheet.style.backgroundRepeat = 'no-repeat';
+                recipeSheet.style.backgroundPosition = 'center';
+                
+                // Opcional: quitamos el color/fondo secundario para que luzca limpio
                 bgSelect.value = "";
 
             } catch (error) {
-                console.error("Error al renderizar el PDF como fondo:", error);
+                console.error("Error al renderizar el PDF:", error);
                 alert("No se pudo procesar el PDF como imagen.");
             }
         };
@@ -133,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             default:
                 content.className = 'block-text';
-                content.innerText = 'Escribe tu texto aquí...';
+                content.innerText = 'Escribe tu texto hier...';
                 break;
         }
 
