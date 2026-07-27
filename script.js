@@ -21,27 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica de Drag and Drop
-    const dragItems = document.querySelectorAll('.drag-item');
+    // Agregar elementos mediante Clic
+    const actionButtons = document.querySelectorAll('.action-btn');
     
-    dragItems.forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', item.getAttribute('data-type'));
-            e.dataTransfer.dropEffect = 'copy';
-        });
-    });
-
-    // Permitir soltar en todo el contenedor de la hoja
-    [recipeSheet, dropZone].forEach(zone => {
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-        });
-
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const type = e.dataTransfer.getData('text/plain');
-            if (!type) return;
+    actionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.getAttribute('data-type');
             
             // Quitar mensaje inicial si existe
             const placeholder = dropZone.querySelector('.placeholder-msg');
