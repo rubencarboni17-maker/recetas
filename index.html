@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Recetas</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts para darle un toque más estético a la receta -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Panel de Control (Oculto al imprimir) -->
+    <header class="no-print control-panel">
+        <h1>Generador de Recetas</h1>
+        <div class="controls-grid">
+            <div class="control-group">
+                <label for="bgSelect">Fondo:</label>
+                <select id="bgSelect">
+                    <!-- Agrega aquí los nombres de tus imágenes guardadas en el repositorio -->
+                    <option value="fondos/fondo1.jpg">Fondo Clásico (Ejemplo)</option>
+                    <option value="fondos/fondo2.jpg">Fondo Madera (Ejemplo)</option>
+                    <option value="">Sin fondo (Blanco)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <button id="btnPdf" class="btn-primary">Descargar / Guardar PDF</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Lienzo / Hoja de Receta -->
+    <main class="page-container">
+        <div id="recipeSheet" class="recipe-sheet">
+            <!-- Contenido editable directamente en pantalla -->
+            <div class="recipe-content">
+                <h1 contenteditable="true" class="recipe-title">Título de la Receta</h1>
+                
+                <div class="recipe-meta" contenteditable="true">
+                    <span><strong>⏱️ Tiempo:</strong> 45 min</span>
+                    <span><strong>🍽️ Porciones:</strong> 4</span>
+                </div>
+
+                <section class="recipe-section">
+                    <h2>Ingredientes</h2>
+                    <div contenteditable="true" class="editable-block">
+                        <ul>
+                            <li>200g de harina</li>
+                            <li>100g de mantequilla</li>
+                            <li>2 huevos</li>
+                            <li>Pizca de sal</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="recipe-section">
+                    <h2>Preparación</h2>
+                    <div contenteditable="true" class="editable-block">
+                        <ol>
+                            <li>Precalentar el horno a 180°C.</li>
+                            <li>Mezclar los ingredientes secos en un bol.</li>
+                            <li>Integrar la mantequilla y los huevos hasta unificar.</li>
+                            <li>Hornear durante 30 minutos.</li>
+                        </ol>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
