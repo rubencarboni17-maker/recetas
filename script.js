@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
+    // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
     }
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica para leer el PDF y separar inteligentemente ingredientes de preparación
+    // Lógica para importar el PDF como Imagen de Fondo de la hoja
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -30,68 +31,38 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = async function () {
             const typedarray = new Uint8Array(this.result);
             try {
+                // Cargar el PDF usando PDF.js
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                let fullText = "";
+                const page = await pdf.getPage(1); // Tomamos la primera página
 
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(" ");
-                    fullText += pageText + "\n";
-                }
+                const viewport = page.getViewport({ scale: 2.0 }); // Escala alta para mayor nitidez
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
 
-                dropZone.innerHTML = '';
-                parseAndRenderStructuredRecipe(fullText);
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                // Convertir la página renderizada a una URL de imagen (Data URL)
+                const imageUrl = canvas.toDataURL('image/png');
+
+                // Asignar la imagen directamente como fondo de la hoja de recetas
+                recipeSheet.style.backgroundImage = `url('${imageUrl}')`;
+                recipeSheet.style.backgroundSize = 'cover';
+                recipeSheet.style.backgroundPosition = 'center';
+
+                // Opcional: limpiar el select de fondos predeterminados para que no interfiera
+                bgSelect.value = "";
 
             } catch (error) {
-                console.error("Error al leer el PDF:", error);
-                alert("No se pudo leer el archivo PDF.");
+                console.error("Error al renderizar el PDF como fondo:", error);
+                alert("No se pudo procesar el PDF como imagen.");
             }
         };
     });
-
-    function parseAndRenderStructuredRecipe(text) {
-        let cleanText = text.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
-
-        // 1. Intentar separar ingredientes y preparación buscando palabras clave comunes
-        let prepSplitter = /(Elaboraci[oó]n|Preparaci[oó]n|Instrucciones|Pasos):?/i;
-        let parts = cleanText.split(prepSplitter);
-
-        let ingredientsRaw = parts[0] || "";
-        let preparationRaw = parts.length > 2 ? parts[2] : (parts[1] || "");
-
-        // Crear Bloque de Título / Encabezado limpio
-        const titleBlock = createBlock('title');
-        titleBlock.querySelector('[contenteditable]').innerText = "Receta Importada";
-        dropZone.appendChild(titleBlock);
-
-        // Crear Bloque de Ingredientes
-        const ingBlock = createBlock('ingredients');
-        const ingContent = ingBlock.querySelector('.block-text');
-        
-        // Limpiar y estructurar ingredientes de forma genérica
-        let ingLines = ingredientsRaw.split(/(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|pizca|huevos|tortilla|hojas|chorrito))/gi);
-        let ingHtml = '<ul>';
-        if (ingLines.length > 1) {
-            ingLines.forEach(l => {
-                let cleaned = l.replace(/Ingredientes\s*:?/gi, '').trim();
-                if (cleaned.length > 3) ingHtml += `<li>${cleaned}</li>`;
-            });
-        } else {
-            ingHtml += `<li>${ingredientsRaw.replace(/Ingredientes\s*:?/gi, '').trim()}</li>`;
-        }
-        ingHtml += '</ul>';
-        ingContent.innerHTML = ingHtml;
-        dropZone.appendChild(ingBlock);
-
-        // Crear Bloque de Preparación
-        if (preparationRaw.trim().length > 0) {
-            const prepBlock = createBlock('preparation');
-            const prepContent = prepBlock.querySelector('.block-text');
-            prepContent.innerHTML = `<p>${preparationRaw.trim()}</p>`;
-            dropZone.appendChild(prepBlock);
-        }
-    }
 
     function addBlockToSheet(type) {
         const placeholder = dropZone.querySelector('.placeholder-msg');
