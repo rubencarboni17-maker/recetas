@@ -316,3 +316,29 @@ input[type="color"] {
         display: none !important;
     }
 }
+
+/* Botón de Auto-formatear / Limpiar texto de PDF */
+.format-btn {
+    position: absolute;
+    top: -8px;
+    right: 25px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.recipe-block:hover .format-btn {
+    display: flex;
+}
+
+.format-btn:hover {
+    background: #2980b9;
+}
