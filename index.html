@@ -5,27 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Recetas</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts para darle un toque más estético a la receta -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- Panel de Control (Oculto al imprimir) -->
     <header class="no-print control-panel">
         <h1>Generador de Recetas</h1>
         <div class="controls-grid">
             <div class="control-group">
                 <label for="bgSelect">Fondo:</label>
                 <select id="bgSelect">
-                    <!-- Agrega aquí los nombres de tus imágenes guardadas en el repositorio -->
-                    <option value="fondos/fondo_1.jpeg">Fondo 1</option>
-                    <option value="fondos/fondo_2.jpeg">Fondo 2</option>
-                    <option value="fondos/fondo_3.jpeg">Fondo 3</option>
-                    <option value="fondos/fondo_4.jpeg">Fondo 4</option>
-                    <option value="fondos/fondo_5.jpeg">Fondo 4</option>
-                    <option value="fondos/fondo_6.jpeg">Fondo 6</option>
+                    <!-- Cambia .jpg por .jpeg aquí abajo si tus archivos reales terminan en .jpeg -->
+                    <option value="fondos/fondo_1.jpg">Fondo 1</option>
+                    <option value="fondos/fondo_2.jpg">Fondo 2</option>
+                    <option value="fondos/fondo_3.jpg">Fondo 3</option>
+                    <option value="fondos/fondo_4.jpg">Fondo 4</option>
+                    <option value="fondos/fondo_5.jpg">Fondo 5</option>
+                    <option value="fondos/fondo_6.jpg">Fondo 6</option>
                     <option value="">Sin fondo (Blanco)</option>
                 </select>
             </div>
@@ -36,10 +34,8 @@
         </div>
     </header>
 
-    <!-- Lienzo / Hoja de Receta -->
     <main class="page-container">
         <div id="recipeSheet" class="recipe-sheet">
-            <!-- Contenido editable directamente en pantalla -->
             <div class="recipe-content">
                 <h1 contenteditable="true" class="recipe-title">Título de la Receta</h1>
                 
