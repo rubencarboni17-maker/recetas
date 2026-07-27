@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
-    // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
     }
@@ -21,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica para leer el PDF directamente usando PDF.js
+    // Lógica para leer el PDF y separar inteligentemente ingredientes de preparación
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -41,60 +40,57 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
-                // Limpiamos la zona de contenido actual
                 dropZone.innerHTML = '';
-
-                // Procesamos el texto extraído del PDF para crear los bloques automáticamente
-                parseAndRenderPdfContent(fullText);
+                parseAndRenderStructuredRecipe(fullText);
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
-                alert("No se pudo leer el archivo PDF. Asegúrate de que sea un PDF válido.");
+                alert("No se pudo leer el archivo PDF.");
             }
         };
     });
 
-    function parseAndRenderPdfContent(text) {
-        // Limpiamos caracteres basura típicos de conversión
+    function parseAndRenderStructuredRecipe(text) {
         let cleanText = text.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
 
-        // Creamos un bloque de ingredientes automático con el texto extraído
-        const block = document.createElement('div');
-        block.className = 'recipe-block';
+        // 1. Intentar separar ingredientes y preparación buscando palabras clave comunes
+        let prepSplitter = /(Elaboraci[oó]n|Preparaci[oó]n|Instrucciones|Pasos):?/i;
+        let parts = cleanText.split(prepSplitter);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => block.remove();
-        block.appendChild(deleteBtn);
+        let ingredientsRaw = parts[0] || "";
+        let preparationRaw = parts.length > 2 ? parts[2] : (parts[1] || "");
 
-        const ingTitle = document.createElement('div');
-        ingTitle.className = 'block-section-title';
-        ingTitle.setAttribute('contenteditable', 'true');
-        ingTitle.innerText = 'Ingredientes (Importados del PDF)';
-        block.appendChild(ingTitle);
+        // Crear Bloque de Título / Encabezado limpio
+        const titleBlock = createBlock('title');
+        titleBlock.querySelector('[contenteditable]').innerText = "Receta Importada";
+        dropZone.appendChild(titleBlock);
 
-        const content = document.createElement('div');
-        content.className = 'block-text';
-        content.setAttribute('contenteditable', 'true');
-
-        // Intentamos separar los ingredientes por palabras clave o unidades comunes
-        let splitPattern = /(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|cucharadita|taza|pizca|huevos|tortilla|hojas|chorrito)|Un\s+chorrito|Hojas\s+de)/gi;
-        let parts = cleanText.split(splitPattern).map(p => p.trim()).filter(p => p.length > 0);
-
-        let htmlOutput = '<ul>';
-        if (parts.length > 1) {
-            parts.forEach(part => {
-                htmlOutput += `<li>${part}</li>`;
+        // Crear Bloque de Ingredientes
+        const ingBlock = createBlock('ingredients');
+        const ingContent = ingBlock.querySelector('.block-text');
+        
+        // Limpiar y estructurar ingredientes de forma genérica
+        let ingLines = ingredientsRaw.split(/(?=\d+\s*(?:gr|g|kg|ml|l|cucharada|pizca|huevos|tortilla|hojas|chorrito))/gi);
+        let ingHtml = '<ul>';
+        if (ingLines.length > 1) {
+            ingLines.forEach(l => {
+                let cleaned = l.replace(/Ingredientes\s*:?/gi, '').trim();
+                if (cleaned.length > 3) ingHtml += `<li>${cleaned}</li>`;
             });
         } else {
-            htmlOutput += `<li>${cleanText}</li>`;
+            ingHtml += `<li>${ingredientsRaw.replace(/Ingredientes\s*:?/gi, '').trim()}</li>`;
         }
-        htmlOutput += '</ul>';
+        ingHtml += '</ul>';
+        ingContent.innerHTML = ingHtml;
+        dropZone.appendChild(ingBlock);
 
-        content.innerHTML = htmlOutput;
-        block.appendChild(content);
-        dropZone.appendChild(block);
+        // Crear Bloque de Preparación
+        if (preparationRaw.trim().length > 0) {
+            const prepBlock = createBlock('preparation');
+            const prepContent = prepBlock.querySelector('.block-text');
+            prepContent.innerHTML = `<p>${preparationRaw.trim()}</p>`;
+            dropZone.appendChild(prepBlock);
+        }
     }
 
     function addBlockToSheet(type) {
