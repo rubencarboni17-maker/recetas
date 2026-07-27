@@ -8,6 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Incluimos PDF.js para leer PDFs directamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 </head>
 <body>
 
@@ -16,6 +21,14 @@
         <h1>Generador de Recetas</h1>
         
         <div class="controls-container">
+            <!-- Botón Importar PDF -->
+            <div class="control-group">
+                <label for="pdfUpload" class="btn-import" style="cursor: pointer; background: #27ae60; color: white; padding: 8px 12px; border-radius: 4px; display: inline-block; font-size: 14px;">
+                    📂 Importar PDF
+                </label>
+                <input type="file" id="pdfUpload" accept=".pdf" style="display: none;">
+            </div>
+
             <!-- Selección de Fondos -->
             <div class="control-group">
                 <label for="bgSelect">Fondo:</label>
@@ -61,9 +74,8 @@
         </div>
     </header>
 
-    <!-- Contenedor Principal con Barra Lateral y Lienzo -->
+    <!-- Contenedor Principal -->
     <div class="main-layout">
-        <!-- Barra Lateral de Elementos -->
         <aside class="no-print sidebar">
             <h3>Elementos</h3>
             <p class="sidebar-tip">Haz clic para agregar:</p>
@@ -79,11 +91,10 @@
             </div>
         </aside>
 
-        <!-- Lienzo / Hoja de Receta -->
         <main class="page-container">
             <div id="recipeSheet" class="recipe-sheet">
                 <div id="dropZone" class="recipe-content">
-                    <div class="placeholder-msg">Haz clic en los elementos de la izquierda para sumarlos al documento...</div>
+                    <div class="placeholder-msg">Importa tu PDF o haz clic en los elementos para armar tu receta...</div>
                 </div>
             </div>
         </main>
