@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Comandos de formato de texto (Negrita, Cursiva, Alineación, etc.)
+    // Comandos de formato de texto
     document.querySelectorAll('.tools-row button[data-command]').forEach(button => {
         button.addEventListener('click', () => {
             const command = button.getAttribute('data-command');
