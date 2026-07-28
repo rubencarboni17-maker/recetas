@@ -194,11 +194,13 @@ input[type="color"] {
     padding: 3rem;
     border-radius: 8px;
     position: relative;
+    overflow: hidden; /* Contenedor de referencia estricto */
 }
 
 .recipe-content {
     min-height: 100%;
     outline: none;
+    position: relative;
 }
 
 .placeholder-msg {
@@ -209,24 +211,38 @@ input[type="color"] {
     pointer-events: none;
 }
 
-/* Estilos para los bloques en la receta */
+/* Estilos para los bloques flotantes y redimensionables (Transparentes) */
 .recipe-block {
-    position: relative;
-    margin-bottom: 1.2rem;
-    padding: 0.4rem;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    min-width: 200px;
+    min-height: 50px;
+    max-width: 90%;
+    resize: both;
+    overflow: auto;
+    background: transparent; /* Sin parches blancos por defecto */
     border: 1px dashed transparent;
+    padding: 5px;
     border-radius: 4px;
+    cursor: move;
 }
 
-.recipe-block:hover {
-    border-color: rgba(0, 0, 0, 0.15);
-    background-color: rgba(255, 255, 255, 0.5);
+/* Solo muestra borde y fondo sutil al pasar el cursor o interactuar */
+.recipe-block:hover, 
+.recipe-block:focus-within {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(52, 152, 219, 0.6);
+}
+
+.recipe-block [contenteditable="true"] {
+    cursor: text;
 }
 
 .recipe-block .delete-btn {
     position: absolute;
-    top: -8px;
-    right: -8px;
+    top: 5px;
+    right: 5px;
     background: #e74c3c;
     color: white;
     border: none;
@@ -238,6 +254,7 @@ input[type="color"] {
     display: none;
     align-items: center;
     justify-content: center;
+    z-index: 10;
 }
 
 .recipe-block:hover .delete-btn {
@@ -279,6 +296,33 @@ input[type="color"] {
     line-height: 1.6;
 }
 
+/* Botón de Auto-formatear / Limpiar texto de PDF */
+.format-btn {
+    position: absolute;
+    top: -8px;
+    right: 25px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+}
+
+.recipe-block:hover .format-btn {
+    display: flex;
+}
+
+.format-btn:hover {
+    background: #2980b9;
+}
+
+/* Estilos de Impresión */
 @media print {
     .no-print {
         display: none !important;
@@ -310,86 +354,11 @@ input[type="color"] {
 
     .recipe-block {
         border: none !important;
+        background: transparent !important;
     }
 
-    .recipe-block .delete-btn {
+    .recipe-block .delete-btn,
+    .recipe-block .format-btn {
         display: none !important;
     }
-}
-
-/* Botón de Auto-formatear / Limpiar texto de PDF */
-.format-btn {
-    position: absolute;
-    top: -8px;
-    right: 25px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 2px 8px;
-    font-size: 11px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
-}
-
-.recipe-block:hover .format-btn {
-    display: flex;
-}
-
-.format-btn:hover {
-    background: #2980b9;
-}
-
-/* Asegurar que la hoja sea el contenedor de referencia para los elementos libres */
-.recipe-sheet {
-    position: relative;
-    overflow: hidden;
-}
-
-/* Estilo para los bloques de recetas flotantes y redimensionables */
-.recipe-block {
-    position: absolute;
-    top: 50px;
-    left: 50px;
-    min-width: 200px;
-    min-height: 80px;
-    max-width: 90%;
-    resize: both;
-    overflow: auto;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px dashed #bdc3c7;
-    padding: 10px;
-    border-radius: 6px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    cursor: move;
-}
-
-.recipe-block:hover {
-    border-color: #3498db;
-}
-
-/* Permitir que el contenido interno maneje su propia selección sin arrastrar al hacer clic dentro */
-.recipe-block [contenteditable="true"] {
-    cursor: text;
-}
-
-.delete-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
 }
