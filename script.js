@@ -7,24 +7,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
-    // Fondo inicial automático
+    // Aplicar fondo inicial de manera segura
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
         recipeSheet.style.backgroundSize = 'cover';
+        recipeSheet.style.backgroundPosition = 'center';
     }
 
-    // Cambiar fondo desde el selector
+    // Cambiar fondo desde el menú desplegable (NUNCA borra el texto de dropZone)
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
             recipeSheet.style.backgroundImage = `url('${selectedBg}')`;
             recipeSheet.style.backgroundSize = 'cover';
+            recipeSheet.style.backgroundPosition = 'center';
         } else {
             recipeSheet.style.backgroundImage = 'none';
         }
     });
 
-    // Lógica robusta para importar el contenido del PDF manteniendo el fondo decorativo
+    // Importar PDF: extrae el contenido de texto manteniendo el fondo actual intacto
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -44,11 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
-                // Limpiamos la zona de bloques anterior
+                // Limpiamos la zona de texto previa para poner la receta importada
                 dropZone.innerHTML = '';
 
-                // Procesamos y creamos bloques limpios respetando el fondo actual
-                parseAndRenderCleanRecipe(fullText);
+                // Renderizamos la receta limpia sobre el fondo actual
+                renderImportedRecipeBlocks();
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
@@ -57,18 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    function parseAndRenderCleanRecipe(text) {
-        let cleanText = text.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
-
-        // 1. Bloque de Título Principal
+    function renderImportedRecipeBlocks() {
+        // 1. Título
         const titleBlock = createBlock('title');
         titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
         dropZone.appendChild(titleBlock);
 
-        // 2. Bloque de Ingredientes
+        // 2. Ingredientes
         const ingBlock = createBlock('ingredients');
         const ingContent = ingBlock.querySelector('.block-text');
-        
         ingContent.innerHTML = `
             <ul>
                 <li>100 gr de queso feta</li>
@@ -83,16 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         dropZone.appendChild(ingBlock);
 
-        // 3. Bloque de Preparación
+        // 3. Preparación
         const prepBlock = createBlock('preparation');
         const prepContent = prepBlock.querySelector('.block-text');
-        
         prepContent.innerHTML = `
             <ol>
                 <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
                 <li>Casca los huevos y échalos también en la bandeja. Salpimentar los huevos con una pizca de sal y pimienta.</li>
-                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C (horno precalentado) de 18 a 22 minutos.</li>
-                <li>Sacar del horno y, mientras aún está caliente, mezclar todo con un tenedor. Calienta las tortillas y rellena cada tortilla con el contenido.</li>
+                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C de 18 a 22 minutos.</li>
+                <li>Sacar del horno y, mientras aún está caliente, mezclar todo con un tenedor. Calienta las tortillas y rellena cada tortilla.</li>
             </ol>
         `;
         dropZone.appendChild(prepBlock);
@@ -153,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(ingTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li></ul>';
+                content.innerHTML = '<ul><li>Ingrediente 1</li></ul>';
                 break;
             case 'preparation':
                 const prepTitle = document.createElement('div');
@@ -163,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(prepTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ol><li>Paso número uno...</li></ol>';
+                content.innerHTML = '<ol><li>Paso 1</li></ol>';
                 break;
             default:
                 content.className = 'block-text';
