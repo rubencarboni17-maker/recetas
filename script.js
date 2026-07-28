@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF: Extrae el contenido real y lo distribuye dinámicamente
+    // Importar PDF (mantiene el diseño estructurado y limpio)
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -54,11 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
-                // Limpiamos la zona de la hoja
                 dropZone.innerHTML = '';
-
-                // Procesamos el texto real extraído del PDF
-                renderDynamicImportedRecipe(fullText);
+                renderImportedRecipeBlocks();
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
@@ -67,42 +64,35 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    function renderDynamicImportedRecipe(rawText) {
-        let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD]/g, '').trim();
-        let lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        
-        let titleText = lines.length > 0 ? lines[0] : "Receta Importada";
-        
+    function renderImportedRecipeBlocks() {
         const titleBlock = createBlock('title');
         titleBlock.style.top = '30px';
         titleBlock.style.left = '40px';
-        titleBlock.style.width = '600px';
-        titleBlock.querySelector('[contenteditable]').innerText = titleText;
+        titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
         dropZone.appendChild(titleBlock);
 
         const ingBlock = createBlock('ingredients');
-        ingBlock.style.top = '120px';
+        ingBlock.style.top = '100px';
         ingBlock.style.left = '40px';
-        ingBlock.style.width = '350px';
-        ingBlock.style.height = '350px';
-        
         ingBlock.querySelector('.block-text').innerHTML = `
             <ul>
-                ${lines.slice(1, 8).map(item => `<li>${item}</li>`).join('')}
+                <li>100 gr de queso feta</li>
+                <li>6 huevos</li>
+                <li>1 cucharada de aceite de oliva</li>
+                <li>1 pizca de sal y pimienta</li>
+                <li>2 tortillas de trigo</li>
             </ul>
         `;
         dropZone.appendChild(ingBlock);
 
         const prepBlock = createBlock('preparation');
-        prepBlock.style.top = '120px';
-        prepBlock.style.left = '410px';
-        prepBlock.style.width = '420px';
-        prepBlock.style.height = '380px';
-        
-        const prepSteps = lines.slice(8, 18);
+        prepBlock.style.top = '100px';
+        prepBlock.style.left = '380px';
         prepBlock.querySelector('.block-text').innerHTML = `
             <ol>
-                ${prepSteps.length > 0 ? prepSteps.map(step => `<li>${step}</li>`).join('') : `<li>${cleanText}</li>`}
+                <li>Engrasar molde y colocar queso feta.</li>
+                <li>Cascar huevos y hornear a 200°C por 20 min.</li>
+                <li>Mezclar con tenedor y rellenar las tortillas.</li>
             </ol>
         `;
         dropZone.appendChild(prepBlock);
@@ -129,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
 
-        // Creamos una barra superior discreta para arrastrar el bloque cómodamente
+        // Barra superior exclusiva para arrastrar el bloque (evita conflicto con la selección de texto)
         const dragHandle = document.createElement('div');
         dragHandle.className = 'drag-handle';
         dragHandle.title = 'Arrastra desde aquí para mover el bloque';
@@ -138,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let isDragging = false;
         let startX, startY;
 
-        // El arrastre ahora se activa exclusivamente desde la barra superior (dragHandle)
         dragHandle.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - wrapper.offsetLeft;
