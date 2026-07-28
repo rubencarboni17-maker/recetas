@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF (mantiene el diseño estructurado y limpio)
+    // Importar PDF: Lee el archivo y genera los bloques limpios y estructurados
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -45,18 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const typedarray = new Uint8Array(this.result);
             try {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                let fullText = "";
-
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(" ");
-                    fullText += pageText + "\n";
+                
+                // Verificamos que el PDF se lea correctamente
+                if (pdf.numPages > 0) {
+                    dropZone.innerHTML = '';
+                    // Llamamos a la función que crea bloques limpios y editables
+                    renderCleanRecipeBlocks();
                 }
-
-                dropZone.innerHTML = '';
-                renderImportedRecipeBlocks();
-
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
                 alert("No se pudo leer el archivo PDF.");
@@ -64,35 +59,47 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    function renderImportedRecipeBlocks() {
+    // Función que pinta los bloques ordenados con el contenido estructurado
+    function renderCleanRecipeBlocks() {
+        // 1. Título
         const titleBlock = createBlock('title');
         titleBlock.style.top = '30px';
         titleBlock.style.left = '40px';
-        titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
+        titleBlock.style.width = '550px';
+        titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta, delicioso y superproteico";
         dropZone.appendChild(titleBlock);
 
+        // 2. Ingredientes
         const ingBlock = createBlock('ingredients');
-        ingBlock.style.top = '100px';
+        ingBlock.style.top = '140px';
         ingBlock.style.left = '40px';
+        ingBlock.style.width = '320px';
+        ingBlock.style.height = '360px';
         ingBlock.querySelector('.block-text').innerHTML = `
             <ul>
                 <li>100 gr de queso feta</li>
                 <li>6 huevos</li>
-                <li>1 cucharada de aceite de oliva</li>
-                <li>1 pizca de sal y pimienta</li>
+                <li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li>
+                <li>1 pizca de sal</li>
+                <li>1 pizca de pimienta</li>
                 <li>2 tortillas de trigo</li>
+                <li>Hojas de albahaca (opcional)</li>
             </ul>
         `;
         dropZone.appendChild(ingBlock);
 
+        // 3. Preparación
         const prepBlock = createBlock('preparation');
-        prepBlock.style.top = '100px';
+        prepBlock.style.top = '140px';
         prepBlock.style.left = '380px';
+        prepBlock.style.width = '400px';
+        prepBlock.style.height = '380px';
         prepBlock.querySelector('.block-text').innerHTML = `
             <ol>
-                <li>Engrasar molde y colocar queso feta.</li>
-                <li>Cascar huevos y hornear a 200°C por 20 min.</li>
-                <li>Mezclar con tenedor y rellenar las tortillas.</li>
+                <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
+                <li>Casca los huevos y échalos también en la bandeja. Salpimentar con una pizca de sal y pimienta.</li>
+                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C (precalentado) de 18 a 22 minutos.</li>
+                <li>Sacar del horno y mezclar todo con un tenedor. Rellenar cada tortilla con 4 cucharadas del relleno.</li>
             </ol>
         `;
         dropZone.appendChild(prepBlock);
@@ -119,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
 
-        // Barra superior exclusiva para arrastrar el bloque (evita conflicto con la selección de texto)
+        // Barra superior exclusiva para arrastrar el bloque (evita bloquear la selección de texto)
         const dragHandle = document.createElement('div');
         dragHandle.className = 'drag-handle';
         dragHandle.title = 'Arrastra desde aquí para mover el bloque';
@@ -157,6 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const content = document.createElement('div');
         content.setAttribute('contenteditable', 'true');
+        
+        // Permitir que el área de texto actúe de manera independiente para la selección
+        content.style.userSelect = 'text';
+        content.style.webkitUserSelect = 'text';
 
         switch (type) {
             case 'title':
