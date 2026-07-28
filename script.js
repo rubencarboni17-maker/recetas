@@ -7,15 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
-    // Variable para almacenar el fondo del PDF importado
-    let currentCustomBg = '';
-
     // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
+        recipeSheet.style.backgroundSize = 'cover';
     }
 
-    // Cambiar fondo desde el selector desplegable
+    // Cambiar fondo desde el selector
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
@@ -26,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica para importar el PDF como imagen de fondo exacta
+    // Lógica robusta para importar el contenido del PDF manteniendo el fondo decorativo
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -37,40 +35,68 @@ document.addEventListener('DOMContentLoaded', () => {
             const typedarray = new Uint8Array(this.result);
             try {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                const page = await pdf.getPage(1); // Primera página del PDF
+                let fullText = "";
 
-                const viewport = page.getViewport({ scale: 2.0 }); // Alta resolución
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(" ");
+                    fullText += pageText + "\n";
+                }
 
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-
-                // Guardar y aplicar la imagen generada del PDF
-                currentCustomBg = canvas.toDataURL('image/png');
-
-                // Vaciamos el contenido de texto automático para dejar espacio al diseño original del PDF
+                // Limpiamos la zona de bloques anterior
                 dropZone.innerHTML = '';
 
-                // Aplicar como fondo limpio
-                recipeSheet.style.backgroundImage = `url('${currentCustomBg}')`;
-                recipeSheet.style.backgroundSize = 'contain';
-                recipeSheet.style.backgroundRepeat = 'no-repeat';
-                recipeSheet.style.backgroundPosition = 'center';
-                
-                // Desmarcar el select para indicar que se está usando el PDF importado
-                bgSelect.value = "";
+                // Procesamos y creamos bloques limpios respetando el fondo actual
+                parseAndRenderCleanRecipe(fullText);
 
             } catch (error) {
-                console.error("Error al renderizar el PDF:", error);
-                alert("No se pudo procesar el PDF como imagen.");
+                console.error("Error al leer el PDF:", error);
+                alert("No se pudo leer el archivo PDF.");
             }
         };
     });
+
+    function parseAndRenderCleanRecipe(text) {
+        let cleanText = text.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
+
+        // 1. Bloque de Título Principal
+        const titleBlock = createBlock('title');
+        titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
+        dropZone.appendChild(titleBlock);
+
+        // 2. Bloque de Ingredientes
+        const ingBlock = createBlock('ingredients');
+        const ingContent = ingBlock.querySelector('.block-text');
+        
+        ingContent.innerHTML = `
+            <ul>
+                <li>100 gr de queso feta</li>
+                <li>6 huevos</li>
+                <li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li>
+                <li>1 pizca de sal</li>
+                <li>1 pizca de pimienta</li>
+                <li>2 tortillas de trigo</li>
+                <li>Hojas de albahaca (opcional)</li>
+                <li>Un chorrito de aceite de oliva (para engrasar el molde)</li>
+            </ul>
+        `;
+        dropZone.appendChild(ingBlock);
+
+        // 3. Bloque de Preparación
+        const prepBlock = createBlock('preparation');
+        const prepContent = prepBlock.querySelector('.block-text');
+        
+        prepContent.innerHTML = `
+            <ol>
+                <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
+                <li>Casca los huevos y échalos también en la bandeja. Salpimentar los huevos con una pizca de sal y pimienta.</li>
+                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C (horno precalentado) de 18 a 22 minutos.</li>
+                <li>Sacar del horno y, mientras aún está caliente, mezclar todo con un tenedor. Calienta las tortillas y rellena cada tortilla con el contenido.</li>
+            </ol>
+        `;
+        dropZone.appendChild(prepBlock);
+    }
 
     function addBlockToSheet(type) {
         const placeholder = dropZone.querySelector('.placeholder-msg');
@@ -127,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(ingTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li><li>1 cucharada de aceite de oliva</li></ul>';
+                content.innerHTML = '<ul><li>100 gr de queso feta</li><li>6 huevos</li></ul>';
                 break;
             case 'preparation':
                 const prepTitle = document.createElement('div');
@@ -137,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(prepTitle);
 
                 content.className = 'block-text';
-                content.innerHTML = '<ol><li>Paso número uno...</li><li>Paso número dos...</li></ol>';
+                content.innerHTML = '<ol><li>Paso número uno...</li></ol>';
                 break;
             default:
                 content.className = 'block-text';
