@@ -67,17 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Función que analiza y distribuye el texto real del PDF en los bloques
     function renderDynamicImportedRecipe(rawText) {
-        // Limpieza básica de caracteres no deseados
         let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD]/g, '').trim();
-
-        // Intentamos separar secciones comunes de recetas de forma automática o estructurada
         let lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
         let titleText = lines.length > 0 ? lines[0] : "Receta Importada";
         
-        // Creamos el Bloque de Título con el texto real
         const titleBlock = createBlock('title');
         titleBlock.style.top = '30px';
         titleBlock.style.left = '40px';
@@ -85,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         titleBlock.querySelector('[contenteditable]').innerText = titleText;
         dropZone.appendChild(titleBlock);
 
-        // Bloque de Ingredientes con el texto extraído (o por defecto si el PDF viene en otro formato)
         const ingBlock = createBlock('ingredients');
         ingBlock.style.top = '120px';
         ingBlock.style.left = '40px';
@@ -99,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         dropZone.appendChild(ingBlock);
 
-        // Bloque de Preparación con el resto del contenido real del PDF
         const prepBlock = createBlock('preparation');
         prepBlock.style.top = '120px';
         prepBlock.style.left = '410px';
@@ -136,16 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
 
-        // Lógica para arrastrar el bloque libremente por la hoja
+        // Creamos una barra superior discreta para arrastrar el bloque cómodamente
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        dragHandle.title = 'Arrastra desde aquí para mover el bloque';
+        wrapper.appendChild(dragHandle);
+
         let isDragging = false;
         let startX, startY;
 
-        wrapper.addEventListener('mousedown', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.getAttribute('contenteditable') === 'true') return;
+        // El arrastre ahora se activa exclusivamente desde la barra superior (dragHandle)
+        dragHandle.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - wrapper.offsetLeft;
             startY = e.clientY - wrapper.offsetTop;
             wrapper.style.zIndex = 1000;
+            e.stopPropagation();
         });
 
         document.addEventListener('mousemove', (e) => {
