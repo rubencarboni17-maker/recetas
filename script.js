@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF: Lee el archivo y genera los bloques limpios y estructurados
+    // Importar PDF: Extrae el texto real del PDF y lo distribuye de manera inteligente en los bloques
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -45,13 +45,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const typedarray = new Uint8Array(this.result);
             try {
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                
-                // Verificamos que el PDF se lea correctamente
-                if (pdf.numPages > 0) {
-                    dropZone.innerHTML = '';
-                    // Llamamos a la función que crea bloques limpios y editables
-                    renderCleanRecipeBlocks();
+                let fullText = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(" ");
+                    fullText += pageText + "\n";
                 }
+
+                // Limpiamos la zona de la hoja
+                dropZone.innerHTML = '';
+
+                // Procesamos y distribuimos el texto real extraído del PDF
+                renderParsedPdfRecipe(fullText);
+
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
                 alert("No se pudo leer el archivo PDF.");
@@ -59,47 +67,78 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Función que pinta los bloques ordenados con el contenido estructurado
-    function renderCleanRecipeBlocks() {
-        // 1. Título
+    // Función que analiza el texto real del PDF y lo acomoda ordenadamente en los bloques
+    function renderParsedPdfRecipe(rawText) {
+        // Limpiamos caracteres extraños propios de algunos PDFs
+        let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD]/g, '').trim();
+        
+        // Separamos el texto por líneas o frases lógicas
+        let lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+        // Intentamos detectar el título (suele ser la primera línea)
+        let titleStr = lines.length > 0 ? lines[0] : "Receta Importada";
+        
+        // 1. Bloque de Título con el texto real del PDF
         const titleBlock = createBlock('title');
         titleBlock.style.top = '30px';
         titleBlock.style.left = '40px';
-        titleBlock.style.width = '550px';
-        titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta, delicioso y superproteico";
+        titleBlock.style.width = '600px';
+        titleBlock.querySelector('[contenteditable]').innerText = titleStr;
         dropZone.appendChild(titleBlock);
 
-        // 2. Ingredientes
+        // Distribuimos el resto del texto entre ingredientes y preparación de forma automática
+        // (Si el PDF contiene las palabras clave, podemos seccionarlo mejor)
+        let ingredientsList = [];
+        let preparationList = [];
+        let currentSection = 'ingredients';
+
+        lines.slice(1).forEach(line => {
+            const lower = line.toLowerCase();
+            if (lower.includes('preparación') || lower.includes('elaboración') || lower.includes('pasos')) {
+                currentSection = 'preparation';
+                return;
+            }
+            if (lower.includes('ingredientes')) {
+                currentSection = 'ingredients';
+                return;
+            }
+
+            if (currentSection === 'ingredients') {
+                ingredientsList.push(`<li>${line}</li>`);
+            } else {
+                preparationList.push(`<li>${line}</li>`);
+            }
+        });
+
+        // Si no se detectaron listas separadas, dividimos las líneas a la mitad por defecto
+        if (ingredientsList.length === 0) {
+            let mid = Math.floor(lines.length / 2);
+            ingredientsList = lines.slice(1, mid > 1 ? mid : 5).map(l => `<li>${l}</li>`);
+            preparationList = lines.slice(mid > 1 ? mid : 5).map(l => `<li>${l}</li>`);
+        }
+
+        // 2. Bloque de Ingredientes con el texto real completo
         const ingBlock = createBlock('ingredients');
         ingBlock.style.top = '140px';
         ingBlock.style.left = '40px';
-        ingBlock.style.width = '320px';
-        ingBlock.style.height = '360px';
+        ingBlock.style.width = '350px';
+        ingBlock.style.height = '380px';
         ingBlock.querySelector('.block-text').innerHTML = `
             <ul>
-                <li>100 gr de queso feta</li>
-                <li>6 huevos</li>
-                <li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li>
-                <li>1 pizca de sal</li>
-                <li>1 pizca de pimienta</li>
-                <li>2 tortillas de trigo</li>
-                <li>Hojas de albahaca (opcional)</li>
+                ${ingredientsList.join('')}
             </ul>
         `;
         dropZone.appendChild(ingBlock);
 
-        // 3. Preparación
+        // 3. Bloque de Preparación con el texto real completo
         const prepBlock = createBlock('preparation');
         prepBlock.style.top = '140px';
-        prepBlock.style.left = '380px';
-        prepBlock.style.width = '400px';
+        prepBlock.style.left = '410px';
+        prepBlock.style.width = '410px';
         prepBlock.style.height = '380px';
         prepBlock.querySelector('.block-text').innerHTML = `
             <ol>
-                <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
-                <li>Casca los huevos y échalos también en la bandeja. Salpimentar con una pizca de sal y pimienta.</li>
-                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C (precalentado) de 18 a 22 minutos.</li>
-                <li>Sacar del horno y mezclar todo con un tenedor. Rellenar cada tortilla con 4 cucharadas del relleno.</li>
+                ${preparationList.length > 0 ? preparationList.join('') : '<li>' + cleanText + '</li>'}
             </ol>
         `;
         dropZone.appendChild(prepBlock);
@@ -126,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
 
-        // Barra superior exclusiva para arrastrar el bloque (evita bloquear la selección de texto)
+        // Barra superior exclusiva para arrastrar el bloque (evita conflictos al seleccionar texto)
         const dragHandle = document.createElement('div');
         dragHandle.className = 'drag-handle';
         dragHandle.title = 'Arrastra desde aquí para mover el bloque';
@@ -164,8 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const content = document.createElement('div');
         content.setAttribute('contenteditable', 'true');
-        
-        // Permitir que el área de texto actúe de manera independiente para la selección
         content.style.userSelect = 'text';
         content.style.webkitUserSelect = 'text';
 
