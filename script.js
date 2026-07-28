@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF: Extrae absolutamente todo el texto y lo mapea sin perder contenido
+    // Importación limpia de PDF en un contenedor unificado y totalmente editable
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -54,8 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
+                // Limpiamos la zona de trabajo
                 dropZone.innerHTML = '';
-                renderFullImportedRecipe(fullText);
+
+                // Creamos un bloque único limpio con todo el texto del PDF formateado
+                renderUnifiedPdfBlock(fullText);
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
@@ -64,66 +67,63 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Distribuye el contenido completo extraído en bloques limpios
-    function renderFullImportedRecipe(rawText) {
+    function renderUnifiedPdfBlock(rawText) {
         let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD]/g, '').trim();
-        let lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-        // 1. Título (Primera línea del PDF)
-        let titleText = lines.length > 0 ? lines[0] : "Receta Importada";
-        const titleBlock = createBlock('title');
-        titleBlock.style.top = '30px';
-        titleBlock.style.left = '40px';
-        titleBlock.style.width = '600px';
-        titleBlock.querySelector('[contenteditable]').innerText = titleText;
-        dropZone.appendChild(titleBlock);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'recipe-block';
+        wrapper.style.top = '30px';
+        wrapper.style.left = '40px';
+        wrapper.style.width = '700px';
+        wrapper.style.height = '600px';
 
-        // Buscamos dinámicamente dónde empiezan los ingredientes y la preparación
-        let ingIndex = lines.findIndex(l => l.toLowerCase().includes('ingrediente'));
-        let prepIndex = lines.findIndex(l => l.toLowerCase().includes('elaboración') || l.toLowerCase().includes('preparación') || l.toLowerCase().includes('pasos'));
+        // Botón de eliminar bloque
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = () => wrapper.remove();
+        wrapper.appendChild(deleteBtn);
 
-        let ingredientsLines = [];
-        let preparationLines = [];
+        // Contenedor de texto principal con formato editable y selección con mouse libre
+        const content = document.createElement('div');
+        content.setAttribute('contenteditable', 'true');
+        content.className = 'block-text';
+        content.style.userSelect = 'text';
+        content.style.webkitUserSelect = 'text';
+        content.style.height = 'calc(100% - 20px)';
+        content.style.overflowY = 'auto';
+        content.style.padding = '10px';
+        
+        // Convertimos los saltos de línea en párrafos o textos legibles
+        content.innerHTML = `<p style="font-size: 16px; line-height: 1.6;">${cleanText.replace(/\n/g, '<br>')}</p>`;
 
-        if (ingIndex !== -1 && prepIndex !== -1) {
-            ingredientsLines = lines.slice(ingIndex + 1, prepIndex);
-            preparationLines = lines.slice(prepIndex + 1);
-        } else {
-            // Si no encuentra las palabras clave, divide el contenido a la mitad equitativamente
-            let mid = Math.floor(lines.length / 2);
-            ingredientsLines = lines.slice(1, mid);
-            preparationLines = lines.slice(mid);
-        }
+        wrapper.appendChild(content);
 
-        // Si alguna lista quedó vacía por el formato del PDF, aseguramos que muestre el texto restante
-        if (ingredientsLines.length === 0) ingredientsLines = lines.slice(1, 6);
-        if (preparationLines.length === 0) preparationLines = lines.slice(6);
+        // Lógica de arrastre limpia utilizando el fondo o bordes del contenedor (sin interferir con el texto)
+        let isDragging = false;
+        let startX, startY;
 
-        // 2. Bloque de Ingredientes con todo el contenido completo
-        const ingBlock = createBlock('ingredients');
-        ingBlock.style.top = '130px';
-        ingBlock.style.left = '40px';
-        ingBlock.style.width = '350px';
-        ingBlock.style.height = '400px';
-        ingBlock.querySelector('.block-text').innerHTML = `
-            <ul>
-                ${ingredientsLines.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-        `;
-        dropZone.appendChild(ingBlock);
+        wrapper.addEventListener('mousedown', (e) => {
+            // Si hace clic directamente dentro del texto editable, no arrastra, permite seleccionar
+            if (e.target.closest('[contenteditable="true"]')) return;
+            isDragging = true;
+            startX = e.clientX - wrapper.offsetLeft;
+            startY = e.clientY - wrapper.offsetTop;
+            wrapper.style.zIndex = 1000;
+        });
 
-        // 3. Bloque de Preparación con todo el contenido completo
-        const prepBlock = createBlock('preparation');
-        prepBlock.style.top = '130px';
-        prepBlock.style.left = '410px';
-        prepBlock.style.width = '410px';
-        prepBlock.style.height = '400px';
-        prepBlock.querySelector('.block-text').innerHTML = `
-            <ol>
-                ${preparationLines.map(step => `<li>${step}</li>`).join('')}
-            </ol>
-        `;
-        dropZone.appendChild(prepBlock);
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            wrapper.style.left = `${e.clientX - startX}px`;
+            wrapper.style.top = `${e.clientY - startY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            wrapper.style.zIndex = 1;
+        });
+
+        dropZone.appendChild(wrapper);
     }
 
     function addBlockToSheet(type) {
@@ -150,12 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let isDragging = false;
         let startX, startY;
 
-        // El arrastre funciona al hacer clic en cualquier parte del bloque, 
-        // EXCEPTO cuando haces clic directo dentro del área de texto editable para escribir o seleccionar.
         wrapper.addEventListener('mousedown', (e) => {
-            if (e.target.getAttribute('contenteditable') === 'true' || e.target.closest('[contenteditable="true"]')) {
-                return; // Permite seleccionar y editar texto libremente
-            }
+            if (e.target.closest('[contenteditable="true"]')) return;
             isDragging = true;
             startX = e.clientX - wrapper.offsetLeft;
             startY = e.clientY - wrapper.offsetTop;
@@ -164,10 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            let newX = e.clientX - startX;
-            let newY = e.clientY - startY;
-            wrapper.style.left = `${newX}px`;
-            wrapper.style.top = `${newY}px`;
+            wrapper.style.left = `${e.clientX - startX}px`;
+            wrapper.style.top = `${e.clientY - startY}px`;
         });
 
         document.addEventListener('mouseup', () => {
