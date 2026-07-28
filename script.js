@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF: Separa el contenido inteligentemente en bloques independientes
+    // Importación limpia de PDF en un contenedor unificado, ordenado y editable
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Limpiamos la zona de trabajo
                 dropZone.innerHTML = '';
 
-                // Creamos los bloques separados y ordenados con el contenido real
-                renderSeparatedBlocks(fullText);
+                // Renderizamos el bloque limpio y formateado
+                renderCleanImportedRecipe(fullText);
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
@@ -67,76 +67,73 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    function renderSeparatedBlocks(rawText) {
-        let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD]/g, '').trim();
+    function renderCleanImportedRecipe(rawText) {
+        // Limpiamos caracteres extraños y reemplazamos marcas de viñetas rotas por saltos de línea limpios
+        let cleanText = rawText
+            .replace(/[\u25A0-\u25FF\uFFFD]/g, '• ')
+            .replace(/Ingredientes\s*:/gi, '\n\n<strong>Ingredientes:</strong>\n')
+            .replace(/Elaboración\s*:/gi, '\n\n<strong>Elaboración:</strong>\n')
+            .replace(/Preparación\s*:/gi, '\n\n<strong>Preparación:</strong>\n')
+            .trim();
 
-        // Extraemos inteligentemente las porciones buscando las palabras clave del PDF
-        let titleText = "Receta Importada";
-        let ingredientsText = "";
-        let preparationText = "";
+        const wrapper = document.createElement('div');
+        wrapper.className = 'recipe-block';
+        wrapper.style.top = '20px';
+        wrapper.style.left = '30px';
+        wrapper.style.width = '720px';
+        wrapper.style.height = '620px';
+        wrapper.style.padding = '15px';
+        wrapper.style.background = 'rgba(255, 255, 255, 0.6)';
+        wrapper.style.borderRadius = '8px';
 
-        // Intentamos separar por "Ingredientes" y "Elaboración" / "Preparación"
-        let ingPos = cleanText.toLowerCase().indexOf('ingredientes');
-        let prepPos = cleanText.toLowerCase().search(/elaboration|elaboración|preparación/);
+        // Botón de eliminar bloque
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = () => wrapper.remove();
+        wrapper.appendChild(deleteBtn);
 
-        if (ingPos !== -1) {
-            titleText = cleanText.substring(0, ingPos).trim();
-            if (!titleText) titleText = "Wrap de huevo y queso feta"; // Respaldo si el título queda vacio
-            
-            if (prepPos !== -1) {
-                ingredientsText = cleanText.substring(ingPos, prepPos).replace(/ingredientes\s*[:\-]*/i, '').trim();
-                preparationText = cleanText.substring(prepPos).replace(/(elaboración|preparación)\s*[:\-]*/i, '').trim();
-            } else {
-                ingredientsText = cleanText.substring(ingPos).replace(/ingredientes\s*[:\-]*/i, '').trim();
-            }
-        } else {
-            // Si no encuentra la estructura exacta, ponemos todo en preparación por defecto
-            preparationText = cleanText;
-        }
-
-        // --- 1. BLOQUE DE TÍTULO ---
-        const titleBlock = createBlock('title');
-        titleBlock.style.top = '30px';
-        titleBlock.style.left = '40px';
-        titleBlock.style.width = '650px';
-        titleBlock.querySelector('[contenteditable]').innerText = titleText;
-        dropZone.appendChild(titleBlock);
-
-        // --- 2. BLOQUE DE INGREDIENTES ---
-        const ingBlock = createBlock('ingredients');
-        ingBlock.style.top = '130px';
-        ingBlock.style.left = '40px';
-        ingBlock.style.width = '350px';
-        ingBlock.style.height = '420px';
+        // Contenedor de texto con scroll y total libertad de edición/selección con el mouse
+        const content = document.createElement('div');
+        content.setAttribute('contenteditable', 'true');
+        content.className = 'block-text';
+        content.style.userSelect = 'text';
+        content.style.webkitUserSelect = 'text';
+        content.style.height = 'calc(100% - 10px)';
+        content.style.overflowY = 'auto';
+        content.style.padding = '10px';
+        content.style.fontSize = '15px';
+        content.style.lineHeight = '1.6';
         
-        // Convertimos los separadores o viñetas rotas en una lista prolija (<ul>)
-        let ingItems = ingredientsText.split(/(?=[▢•\-\d]+\s)/).filter(i => i.trim().length > 0);
-        if (ingItems.length === 0) ingItems = [ingredientsText];
-        
-        ingBlock.querySelector('.block-text').innerHTML = `
-            <ul>
-                ${ingItems.map(item => `<li>${item.replace(/^[▢•\-]\s*/, '').trim()}</li>`).join('')}
-            </ul>
-        `;
-        dropZone.appendChild(ingBlock);
+        // Estructuramos el contenido respetando saltos de línea
+        content.innerHTML = cleanText.split('\n').map(line => line.trim() ? `<p style="margin: 6px 0;">${line}</p>` : '').join('');
 
-        // --- 3. BLOQUE DE PREPARACIÓN ---
-        const prepBlock = createBlock('preparation');
-        prepBlock.style.top = '130px';
-        prepBlock.style.left = '410px';
-        prepBlock.style.width = '410px';
-        prepBlock.style.height = '420px';
+        wrapper.appendChild(content);
 
-        // Convertimos los párrafos de preparación en pasos ordenados (<ol>)
-        let prepSteps = preparationText.split(/\.\s+/).filter(s => s.trim().length > 0);
-        if (prepSteps.length === 0) prepSteps = [preparationText];
+        // Lógica de arrastre fluida (permite seleccionar texto con el mouse sin mover la caja por error)
+        let isDragging = false;
+        let startX, startY;
 
-        prepBlock.querySelector('.block-text').innerHTML = `
-            <ol>
-                ${prepSteps.map(step => `<li>${step.trim()}${step.endsWith('.') ? '' : '.'}</li>`).join('')}
-            </ol>
-        `;
-        dropZone.appendChild(prepBlock);
+        wrapper.addEventListener('mousedown', (e) => {
+            if (e.target.closest('[contenteditable="true"]')) return;
+            isDragging = true;
+            startX = e.clientX - wrapper.offsetLeft;
+            startY = e.clientY - wrapper.offsetTop;
+            wrapper.style.zIndex = 1000;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            wrapper.style.left = `${e.clientX - startX}px`;
+            wrapper.style.top = `${e.clientY - startY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            wrapper.style.zIndex = 1;
+        });
+
+        dropZone.appendChild(wrapper);
     }
 
     function addBlockToSheet(type) {
@@ -163,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let isDragging = false;
         let startX, startY;
 
-        // Arrastre fluido desde los bordes o espacios vacíos (permite seleccionar texto con el mouse sin problemas)
         wrapper.addEventListener('mousedown', (e) => {
             if (e.target.closest('[contenteditable="true"]')) return;
             isDragging = true;
@@ -174,10 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            let newX = e.clientX - startX;
-            let newY = e.clientY - startY;
-            wrapper.style.left = `${newX}px`;
-            wrapper.style.top = `${newY}px`;
+            wrapper.style.left = `${e.clientX - startX}px`;
+            wrapper.style.top = `${e.clientY - startY}px`;
         });
 
         document.addEventListener('mouseup', () => {
