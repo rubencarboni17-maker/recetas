@@ -342,3 +342,54 @@ input[type="color"] {
 .format-btn:hover {
     background: #2980b9;
 }
+
+/* Asegurar que la hoja sea el contenedor de referencia para los elementos libres */
+.recipe-sheet {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Estilo para los bloques de recetas flotantes y redimensionables */
+.recipe-block {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    min-width: 200px;
+    min-height: 80px;
+    max-width: 90%;
+    resize: both;
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px dashed #bdc3c7;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    cursor: move;
+}
+
+.recipe-block:hover {
+    border-color: #3498db;
+}
+
+/* Permitir que el contenido interno maneje su propia selección sin arrastrar al hacer clic dentro */
+.recipe-block [contenteditable="true"] {
+    cursor: text;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
