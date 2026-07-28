@@ -3,18 +3,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const recipeSheet = document.getElementById('recipeSheet');
     const dropZone = document.getElementById('dropZone');
     const btnPdf = document.getElementById('btnPdf');
+    const btnClearSheet = document.getElementById('btnClearSheet');
     const textColor = document.getElementById('textColor');
     const fontSizeSelect = document.getElementById('fontSizeSelect');
     const pdfUpload = document.getElementById('pdfUpload');
 
-    // Aplicar fondo inicial de manera segura
+    // Fondo inicial automático
     if (bgSelect.value) {
         recipeSheet.style.backgroundImage = `url('${bgSelect.value}')`;
         recipeSheet.style.backgroundSize = 'cover';
         recipeSheet.style.backgroundPosition = 'center';
     }
 
-    // Cambiar fondo desde el menú desplegable (NUNCA borra el texto de dropZone)
+    // Cambiar fondo desde el menú desplegable
     bgSelect.addEventListener('change', (e) => {
         const selectedBg = e.target.value;
         if (selectedBg) {
@@ -26,7 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF: extrae el contenido de texto manteniendo el fondo actual intacto
+    // Botón para limpiar pantalla manteniendo el fondo
+    btnClearSheet.addEventListener('click', () => {
+        if (confirm('¿Deseas limpiar todo el texto de la pantalla?')) {
+            dropZone.innerHTML = '<div class="placeholder-msg">Importa tu PDF o haz clic en los elementos para armar tu receta...</div>';
+        }
+    });
+
+    // Importar PDF (mantiene fondo y genera bloques)
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -46,10 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
-                // Limpiamos la zona de texto previa para poner la receta importada
                 dropZone.innerHTML = '';
-
-                // Renderizamos la receta limpia sobre el fondo actual
                 renderImportedRecipeBlocks();
 
             } catch (error) {
@@ -60,37 +65,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderImportedRecipeBlocks() {
-        // 1. Título
         const titleBlock = createBlock('title');
+        titleBlock.style.top = '30px';
+        titleBlock.style.left = '40px';
         titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
         dropZone.appendChild(titleBlock);
 
-        // 2. Ingredientes
         const ingBlock = createBlock('ingredients');
-        const ingContent = ingBlock.querySelector('.block-text');
-        ingContent.innerHTML = `
+        ingBlock.style.top = '100px';
+        ingBlock.style.left = '40px';
+        ingBlock.querySelector('.block-text').innerHTML = `
             <ul>
                 <li>100 gr de queso feta</li>
                 <li>6 huevos</li>
-                <li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li>
-                <li>1 pizca de sal</li>
-                <li>1 pizca de pimienta</li>
+                <li>1 cucharada de aceite de oliva</li>
+                <li>1 pizca de sal y pimienta</li>
                 <li>2 tortillas de trigo</li>
-                <li>Hojas de albahaca (opcional)</li>
-                <li>Un chorrito de aceite de oliva (para engrasar el molde)</li>
             </ul>
         `;
         dropZone.appendChild(ingBlock);
 
-        // 3. Preparación
         const prepBlock = createBlock('preparation');
-        const prepContent = prepBlock.querySelector('.block-text');
-        prepContent.innerHTML = `
+        prepBlock.style.top = '100px';
+        prepBlock.style.left = '380px';
+        prepBlock.querySelector('.block-text').innerHTML = `
             <ol>
-                <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
-                <li>Casca los huevos y échalos también en la bandeja. Salpimentar los huevos con una pizca de sal y pimienta.</li>
-                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C de 18 a 22 minutos.</li>
-                <li>Sacar del horno y, mientras aún está caliente, mezclar todo con un tenedor. Calienta las tortillas y rellena cada tortilla.</li>
+                <li>Engrasar molde y colocar queso feta.</li>
+                <li>Cascar huevos y hornear a 200°C por 20 min.</li>
+                <li>Mezclar con tenedor y rellenar las tortillas.</li>
             </ol>
         `;
         dropZone.appendChild(prepBlock);
@@ -116,6 +118,32 @@ document.addEventListener('DOMContentLoaded', () => {
     function createBlock(type) {
         const wrapper = document.createElement('div');
         wrapper.className = 'recipe-block';
+
+        // Lógica para arrastrar el bloque libremente por la hoja
+        let isDragging = false;
+        let startX, startY;
+
+        wrapper.addEventListener('mousedown', (e) => {
+            // Evitar arrastre si interactúa con el botón de borrar o texto editable
+            if (e.target.tagName === 'BUTTON' || e.target.getAttribute('contenteditable') === 'true') return;
+            isDragging = true;
+            startX = e.clientX - wrapper.offsetLeft;
+            startY = e.clientY - wrapper.offsetTop;
+            wrapper.style.zIndex = 1000; // Traer al frente
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            let newX = e.clientX - startX;
+            let newY = e.clientY - startY;
+            wrapper.style.left = `${newX}px`;
+            wrapper.style.top = `${newY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            wrapper.style.zIndex = 1;
+        });
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
