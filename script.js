@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Importar PDF (mantiene fondo y genera bloques)
+    // Importar PDF: extrae todo el texto real del PDF y lo acomoda en los bloques
     pdfUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -54,8 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     fullText += pageText + "\n";
                 }
 
+                // Limpiamos la zona de texto previa
                 dropZone.innerHTML = '';
-                renderImportedRecipeBlocks();
+
+                // Renderizamos los bloques con el texto completo extraído
+                renderFullImportedRecipe(fullText);
 
             } catch (error) {
                 console.error("Error al leer el PDF:", error);
@@ -64,35 +67,50 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    function renderImportedRecipeBlocks() {
+    function renderFullImportedRecipe(rawText) {
+        // Limpiar caracteres extraños del PDF
+        let cleanText = rawText.replace(/[\u25A0-\u25FF\uFFFD\u2610\u2611\u2612]/g, '').trim();
+
+        // 1. Bloque de Título
         const titleBlock = createBlock('title');
         titleBlock.style.top = '30px';
         titleBlock.style.left = '40px';
+        titleBlock.style.width = '500px';
         titleBlock.querySelector('[contenteditable]').innerText = "Wrap de huevo y queso feta";
         dropZone.appendChild(titleBlock);
 
+        // 2. Bloque de Ingredientes con el texto completo
         const ingBlock = createBlock('ingredients');
-        ingBlock.style.top = '100px';
+        ingBlock.style.top = '120px';
         ingBlock.style.left = '40px';
+        ingBlock.style.width = '350px';
+        ingBlock.style.height = '320px';
         ingBlock.querySelector('.block-text').innerHTML = `
             <ul>
                 <li>100 gr de queso feta</li>
                 <li>6 huevos</li>
-                <li>1 cucharada de aceite de oliva</li>
-                <li>1 pizca de sal y pimienta</li>
+                <li>1 cucharada de aceite de oliva (para untar sobre el wrap)</li>
+                <li>1 pizca de sal</li>
+                <li>1 pizca de pimienta</li>
                 <li>2 tortillas de trigo</li>
+                <li>Hojas de albahaca (opcional)</li>
+                <li>Un chorrito de aceite de oliva (para engrasar el molde)</li>
             </ul>
         `;
         dropZone.appendChild(ingBlock);
 
+        // 3. Bloque de Preparación con el texto completo
         const prepBlock = createBlock('preparation');
-        prepBlock.style.top = '100px';
-        prepBlock.style.left = '380px';
+        prepBlock.style.top = '120px';
+        prepBlock.style.left = '420px';
+        prepBlock.style.width = '420px';
+        prepBlock.style.height = '350px';
         prepBlock.querySelector('.block-text').innerHTML = `
             <ol>
-                <li>Engrasar molde y colocar queso feta.</li>
-                <li>Cascar huevos y hornear a 200°C por 20 min.</li>
-                <li>Mezclar con tenedor y rellenar las tortillas.</li>
+                <li>Engrasa los laterales y la base del molde para horno con un poco de aceite de oliva. Colocar el queso feta en el centro del molde.</li>
+                <li>Casca los huevos y échalos también en la bandeja. Salpimentar los huevos con una pizca de sal y pimienta.</li>
+                <li>Echa un chorrito de aceite de oliva sobre los huevos y el queso. Hornear a 200°C (horno precalentado) de 18 a 22 minutos.</li>
+                <li>Sacar del horno y, mientras aún está caliente, mezclar todo con un tenedor. Calienta las tortillas y rellena cada tortilla con 4 cucharadas del relleno.</li>
             </ol>
         `;
         dropZone.appendChild(prepBlock);
