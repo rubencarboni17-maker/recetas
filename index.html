@@ -1,112 +1,267 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Recetas</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- Incluimos PDF.js para leer PDFs directamente -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Recetas A4</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css?v=3" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
 
-    <!-- Panel de Control Superior -->
-    <header class="no-print control-panel">
-        <h1>Generador de Recetas</h1>
-        
-        <div class="controls-container">
-            <!-- Botón Importar PDF -->
-            <div class="control-group">
-                <label for="pdfUpload" class="btn-import" style="cursor: pointer; background: #27ae60; color: white; padding: 8px 12px; border-radius: 4px; display: inline-block; font-size: 14px;">
-                    📂 Importar PDF
-                </label>
-                <input type="file" id="pdfUpload" accept=".pdf" style="display: none;">
-            </div>
-
-            <!-- Selección de Fondos -->
-            <div class="control-group">
-                <label for="bgSelect">Fondo:</label>
-                <select id="bgSelect">
-                    <option value="/recetas/fondos/fondo_1.jpeg">Fondo 1</option>
-                    <option value="/recetas/fondos/fondo_2.jpeg">Fondo 2</option>
-                    <option value="/recetas/fondos/fondo_3.jpeg">Fondo 3</option>
-                    <option value="/recetas/fondos/fondo_4.jpeg">Fondo 4</option>
-                    <option value="/recetas/fondos/fondo_5.jpeg">Fondo 5</option>
-                    <option value="/recetas/fondos/fondo_6.jpeg">Fondo 6</option>
-                    <option value="">Sin fondo (Blanco)</option>
-                </select>
-            </div>
-
-            <!-- Herramientas de Texto -->
-            <div class="control-group text-tools">
-                <label>Estilo de Texto:</label>
-                <div class="tools-row">
-                    <button type="button" data-command="bold" title="Negrita"><b>N</b></button>
-                    <button type="button" data-command="italic" title="Cursiva"><i>C</i></button>
-                    <button type="button" data-command="underline" title="Subrayado"><u>S</u></button>
-                    <div class="tool-divider"></div>
-                    <button type="button" data-command="justifyLeft" title="Izquierda">Izquierda</button>
-                    <button type="button" data-command="justifyCenter" title="Centro">Centro</button>
-                    <button type="button" data-command="justifyRight" title="Derecha">Derecha</button>
-                    <div class="tool-divider"></div>
-                    <label for="textColor" class="sub-label">Color:</label>
-                    <input type="color" id="textColor" value="#2c3e50" title="Color">
-                    <label for="fontSizeSelect" class="sub-label">Tamaño:</label>
-                    <select id="fontSizeSelect">
-                        <option value="2">Pequeño</option>
-                        <option value="3" selected>Normal</option>
-                        <option value="5">Grande</option>
-                        <option value="6">Muy Grande</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Botón PDF -->
-            <div class="control-group">
-                <button id="btnPdf" class="btn-primary">Descargar / Guardar PDF</button>
-            </div>
-            
-            <!-- Dentro del panel de control superior, junto al botón de importar PDF -->
-            <div class="control-group">
-                <button type="button" id="btnClearSheet" class="btn-secondary" style="background: #e74c3c; color: white; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 14px;">
-                    🗑️ Limpiar Pantalla
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Contenedor Principal -->
-    <div class="main-layout">
-        <aside class="no-print sidebar">
-            <h3>Elementos</h3>
-            <p class="sidebar-tip">Haz clic para agregar:</p>
-            
-            <div class="draggable-items">
-                <div class="drag-item" data-type="title">📌 Título</div>
-                <div class="drag-item" data-type="time">⏱️ Tiempo</div>
-                <div class="drag-item" data-type="complexity">⭐ Complejidad</div>
-                <div class="drag-item" data-type="portions">🍽️ Porciones</div>
-                <div class="drag-item" data-type="ingredients">🥗 Ingredientes</div>
-                <div class="drag-item" data-type="preparation">🍳 Preparación</div>
-                <div class="drag-item" data-type="text">📝 Bloque de Texto</div>
-            </div>
-        </aside>
-
-        <main class="page-container">
-            <div id="recipeSheet" class="recipe-sheet">
-                <div id="dropZone" class="recipe-content">
-                    <div class="placeholder-msg">Importa tu PDF o haz clic en los elementos para armar tu receta...</div>
-                </div>
-            </div>
-        </main>
+    <!-- Acceso -->
+    <div id="gate" class="gate" hidden>
+      <div class="gate-card">
+        <div class="gate-ornament" aria-hidden="true"></div>
+        <p class="gate-brand" id="gateBrand">Recetas A4</p>
+        <h1 id="gateTitle">Acceso</h1>
+        <p class="gate-hint" id="gateHint">Ingresá tu contraseña para continuar.</p>
+        <form id="gateForm" autocomplete="off">
+          <label class="sr-only" for="gatePassword">Contraseña</label>
+          <input
+            type="password"
+            id="gatePassword"
+            name="password"
+            placeholder="Contraseña"
+            required
+            autofocus
+          />
+          <button type="submit" id="gateSubmit">Entrar</button>
+          <p class="gate-error" id="gateError" hidden></p>
+        </form>
+      </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <!-- App -->
+    <div id="app" class="app" hidden>
+      <div class="app-chrome">
+      <header class="topbar">
+        <div class="topbar-brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div class="brand-text">
+            <span id="appTitle">Recetas A4</span>
+            <span class="brand-sub">Estudio de impresión</span>
+          </div>
+        </div>
+
+        <div class="toolbar" role="toolbar" aria-label="Formato de texto">
+          <label class="tool">
+            <span class="tool-label">Fuente</span>
+            <select id="fontFamily" title="Tipo de fuente">
+              <option value="'Source Serif 4', Georgia, serif">Source Serif</option>
+              <option value="'Fraunces', Georgia, serif">Fraunces</option>
+              <option value="'Libre Baskerville', Georgia, serif">Baskerville</option>
+              <option value="'Manrope', system-ui, sans-serif">Manrope</option>
+              <option value="'IBM Plex Mono', monospace">Plex Mono</option>
+            </select>
+          </label>
+
+          <label class="tool tool-size">
+            <span class="tool-label">Tamaño</span>
+            <div class="size-combo">
+              <input
+                type="number"
+                id="fontSizeInput"
+                list="fontSizePresets"
+                min="6"
+                max="200"
+                step="1"
+                value="14"
+                title="Escribí un tamaño o elegí uno de la lista"
+                aria-label="Tamaño de fuente en píxeles"
+              />
+              <span class="size-unit">px</span>
+            </div>
+            <datalist id="fontSizePresets">
+              <option value="11"></option>
+              <option value="12"></option>
+              <option value="14"></option>
+              <option value="16"></option>
+              <option value="18"></option>
+              <option value="20"></option>
+              <option value="24"></option>
+              <option value="28"></option>
+              <option value="32"></option>
+              <option value="40"></option>
+              <option value="48"></option>
+            </datalist>
+          </label>
+
+          <label class="tool">
+            <span class="tool-label">Interlineado</span>
+            <select id="lineHeight" title="Interlineado">
+              <option value="1.25">1.25</option>
+              <option value="1.4">1.4</option>
+              <option value="1.55" selected>1.55</option>
+              <option value="1.75">1.75</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+
+          <div class="tool-divider" aria-hidden="true"></div>
+
+          <div class="tool-group" role="group" aria-label="Estilo">
+            <button type="button" class="icon-btn" data-cmd="bold" title="Negrita"><b>B</b></button>
+            <button type="button" class="icon-btn" data-cmd="italic" title="Cursiva"><i>I</i></button>
+            <button type="button" class="icon-btn" data-cmd="underline" title="Subrayado"><u>U</u></button>
+          </div>
+
+          <div class="tool-group" role="group" aria-label="Listas e sangría">
+            <button type="button" class="icon-btn" id="btnBullets" title="Viñetas" aria-label="Agregar viñetas">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="3" cy="4" r="1.4" fill="currentColor"/>
+                <circle cx="3" cy="8" r="1.4" fill="currentColor"/>
+                <circle cx="3" cy="12" r="1.4" fill="currentColor"/>
+                <path fill="currentColor" d="M6 3.25h8v1.5H6zm0 4h8v1.5H6zm0 4h8v1.5H6z"/>
+              </svg>
+            </button>
+            <button type="button" class="icon-btn" id="btnIndent" title="Sangrar (Tab)" aria-label="Sangrar a la derecha">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1 3h14v1.5H1zm6 4h8v1.5H7zm-6 4h14v1.5H1zM2 5.2v5.6L6.5 8z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" id="btnOutdent" title="Quitar sangría (Shift+Tab)" aria-label="Sangrar a la izquierda">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1 3h14v1.5H1zm6 4h8v1.5H7zm-6 4h14v1.5H1zM6.5 5.2 2 8l4.5 2.8z"/></svg>
+            </button>
+          </div>
+
+          <div class="tool-group" role="group" aria-label="Alineación">
+            <button type="button" class="icon-btn" data-align="left" title="Izquierda" aria-label="Alinear izquierda">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1.5H2zm0 4h8v1.5H2zm0 4h12v1.5H2zm0 4h8v1.5H2z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" data-align="center" title="Centrar" aria-label="Centrar">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1.5H2zm2 4h8v1.5H4zm-2 4h12v1.5H2zm2 4h8v1.5H4z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" data-align="right" title="Derecha" aria-label="Alinear derecha">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1.5H2zm4 4h8v1.5H6zm-4 4h12v1.5H2zm4 4h8v1.5H6z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" data-align="justify" title="Justificar" aria-label="Justificar">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 3h12v1.5H2zm0 4h12v1.5H2zm0 4h12v1.5H2zm0 4h12v1.5H2z"/></svg>
+            </button>
+          </div>
+
+          <label class="tool tool-color">
+            <span class="tool-label">Color</span>
+            <input type="color" id="textColor" value="#1a221c" title="Color de texto" />
+          </label>
+        </div>
+
+        <div class="topbar-actions">
+          <p class="format-hint" id="formatHint" aria-live="polite"></p>
+          <button type="button" id="btnAddPage" class="btn ghost">+ Página</button>
+          <button type="button" id="btnPrint" class="btn primary">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 2h8v3H4zm0 12h8v-4H4zm-1.5-5A1.5 1.5 0 0 1 4 7.5h8A1.5 1.5 0 0 1 13.5 9v2H12v-1H4v1H2.5V9z"/></svg>
+            Imprimir / PDF
+          </button>
+        </div>
+      </header>
+
+      <nav class="mobile-nav" id="mobileNav" aria-label="Navegación móvil">
+        <button type="button" class="mobile-nav-btn is-active" data-mobile-view="tools">
+          Materiales
+        </button>
+        <button type="button" class="mobile-nav-btn" data-mobile-view="editor">
+          Hoja A4
+        </button>
+      </nav>
+      </div>
+
+      <div class="workspace" id="workspace" data-mobile-view="tools">
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">Paso 1</p>
+                <h2>Fondos A4</h2>
+              </div>
+            </div>
+
+            <div class="bg-import">
+              <label class="file-drop" for="bgInput">
+                <input
+                  type="file"
+                  id="bgInput"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  multiple
+                  hidden
+                />
+                <span class="file-drop-icon" aria-hidden="true">＋</span>
+                <span class="file-drop-title">Importar JPG / imagen</span>
+                <span class="file-drop-sub">También PNG o WebP · se guarda en este navegador</span>
+              </label>
+              <p class="panel-status" id="bgStatus" aria-live="polite"></p>
+            </div>
+
+            <div id="bgGrid" class="bg-grid" role="listbox" aria-label="Fondos importados"></div>
+
+            <div class="bg-controls" id="bgControls" hidden>
+              <label class="tool tool-full">
+                <span class="tool-label">Ajuste del fondo</span>
+                <select id="bgFit" title="Cómo encaja la imagen">
+                  <option value="cover">Cubrir hoja</option>
+                  <option value="contain">Contener</option>
+                  <option value="fill">Estirar</option>
+                </select>
+              </label>
+              <label class="tool tool-full">
+                <span class="tool-label">Veladura <span id="overlayValue">28%</span></span>
+                <input type="range" id="bgOverlay" min="0" max="70" value="28" />
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">Paso 2</p>
+                <h2>PDF de origen</h2>
+              </div>
+            </div>
+            <label class="file-drop" for="pdfInput">
+              <input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden />
+              <span class="file-drop-icon" aria-hidden="true">＋</span>
+              <span class="file-drop-title">Elegir PDF</span>
+              <span class="file-drop-sub" id="pdfName">o soltá el archivo aquí</span>
+            </label>
+            <p class="panel-status" id="pdfStatus" aria-live="polite"></p>
+          </section>
+
+          <section class="panel panel-sections">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">Paso 3</p>
+                <h2>Secciones</h2>
+              </div>
+              <button type="button" id="btnSelectAll" class="btn tiny ghost" disabled>
+                Todas
+              </button>
+            </div>
+            <div id="sectionsList" class="sections-list">
+              <p class="empty-hint">Cargá un PDF para ver sus páginas y bloques de texto.</p>
+            </div>
+            <button type="button" id="btnInsert" class="btn primary block" disabled>
+              Pegar seleccionadas en la hoja
+            </button>
+          </section>
+        </aside>
+
+        <main class="stage" id="stage">
+          <div class="stage-hint">
+            <span>Vista previa A4</span>
+            <span class="stage-hint-detail">Editá el texto directamente sobre la hoja</span>
+          </div>
+          <div id="pages" class="pages"></div>
+        </main>
+      </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js?v=3"></script>
+    <script type="module" src="js/app.js?v=3"></script>
+  </body>
 </html>
