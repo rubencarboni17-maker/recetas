@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="css/styles.css?v=14" />
+    <link rel="stylesheet" href="css/styles.css?v=17" />
     <style id="gate-critical">
       /* Estilos críticos del login: aseguran el layout aunque falle la caché del CSS */
       #gate.gate {
@@ -408,6 +408,19 @@
             <button type="button" class="icon-btn" data-cmd="bold" title="Negrita"><b>B</b></button>
             <button type="button" class="icon-btn" data-cmd="italic" title="Cursiva"><i>I</i></button>
             <button type="button" class="icon-btn" data-cmd="underline" title="Subrayado"><u>U</u></button>
+            <button
+              type="button"
+              class="icon-btn"
+              id="btnTextPanel"
+              title="Recuadro (atenúa el fondo detrás del texto)"
+              aria-label="Agregar o quitar recuadro al texto"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="currentColor" opacity="0.22"/>
+                <rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <path fill="currentColor" d="M4 6.2h8v1.3H4zm0 2.6h5.5v1.3H4z"/>
+              </svg>
+            </button>
           </div>
 
           <div class="tool-group" role="group" aria-label="Listas e sangría">
@@ -566,8 +579,8 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=16"></script>
-    <script src="js/auth.js?v=16"></script>
-    <script type="module" src="js/app.js?v=16"></script>
+    <script src="js/config.js?v=17"></script>
+    <script src="js/auth.js?v=17"></script>
+    <script type="module" src="js/app.js?v=17"></script>
   </body>
 </html>
