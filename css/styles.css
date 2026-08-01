@@ -18,7 +18,7 @@
   --font-display: "Fraunces", Georgia, serif;
   --a4-w: 210mm;
   --a4-h: 297mm;
-  --topbar-h: 64px;
+  --topbar-h: 72px;
 }
 
 *,
@@ -396,9 +396,9 @@ body {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: var(--topbar-h);
-  padding: 8px 14px;
+  padding: 8px 12px;
   background: rgba(255, 252, 247, 0.92);
   backdrop-filter: blur(16px) saturate(1.2);
   border-bottom: 1px solid var(--line);
@@ -439,10 +439,10 @@ body {
 .brand-text #appTitle {
   font-family: var(--font-display);
   font-weight: 650;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  max-width: 9.5rem;
+  max-width: 8.2rem;
   white-space: normal;
 }
 
@@ -611,29 +611,77 @@ body {
 }
 
 .topbar-actions {
+  position: relative;
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   margin-left: 0;
-  align-items: center;
+  align-items: stretch;
   flex: 0 0 auto;
+  width: 168px;
+}
+
+.topbar-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
 }
 
 .topbar-actions .btn {
-  padding: 7px 10px;
-  min-height: 32px;
-  font-size: 0.82rem;
+  padding: 6px 6px;
+  min-height: 30px;
+  font-size: 0.76rem;
   white-space: nowrap;
+  width: 100%;
+  justify-content: center;
+}
+
+.topbar-actions .btn.primary {
+  gap: 4px;
+}
+
+.tool-color-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tool-color-btn input[type="color"] {
+  position: absolute;
+  inset: 4px;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tool-color-btn input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.tool-color-btn input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 4px;
 }
 
 .format-hint {
+  position: absolute;
+  right: 12px;
+  top: calc(100% + 4px);
   margin: 0;
-  max-width: 140px;
+  max-width: 220px;
   font-size: 0.68rem;
   line-height: 1.25;
   color: var(--gold);
   font-weight: 650;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.2s ease;
+  z-index: 25;
 }
 
 .format-hint.visible {
@@ -1293,12 +1341,16 @@ body.is-exporting .text-panel-handle {
   .topbar-actions {
     margin-left: 0;
     width: 100%;
-    justify-content: stretch;
+    min-width: 0;
+  }
+
+  .topbar-actions-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .topbar-actions .btn {
-    flex: 1;
-    min-height: 44px;
+    flex: none;
+    min-height: 40px;
   }
 
   .icon-btn {
