@@ -1,4 +1,4 @@
-# Recetas A4
+# Las recetas del Abuelo
 
 Herramienta personal (estática) para armar hojas A4 con fondo decorativo, extraer secciones de un PDF y formatear tipografía. Pensada para publicarse en **GitHub Pages**.
 
