@@ -18,7 +18,7 @@
   --font-display: "Fraunces", Georgia, serif;
   --a4-w: 210mm;
   --a4-h: 297mm;
-  --topbar-h: 74px;
+  --topbar-h: 64px;
 }
 
 *,
@@ -396,50 +396,58 @@ body {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   min-height: var(--topbar-h);
-  padding: 12px 18px;
+  padding: 8px 14px;
   background: rgba(255, 252, 247, 0.92);
   backdrop-filter: blur(16px) saturate(1.2);
   border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
 .topbar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.35), transparent 45%),
-    linear-gradient(135deg, var(--accent-deep), #52b788 70%, var(--gold));
+    linear-gradient(145deg, rgba(255, 255, 255, 0.28), transparent 42%),
+    linear-gradient(145deg, #1b4332, #2d6a4f 58%, #40916c);
   box-shadow: 0 8px 18px rgba(27, 67, 50, 0.28);
+  flex: 0 0 auto;
+}
+
+.brand-mark svg {
+  display: block;
 }
 
 .brand-text {
   display: grid;
-  gap: 1px;
+  gap: 0;
 }
 
 .brand-text #appTitle {
   font-family: var(--font-display);
   font-weight: 650;
-  font-size: 1.05rem;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
-  max-width: 11rem;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  max-width: 9.5rem;
   white-space: normal;
 }
 
 .brand-sub {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -448,25 +456,29 @@ body {
 
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: end;
-  gap: 10px;
-  flex: 1;
+  gap: 7px;
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 6px 10px;
+  padding: 5px 8px 6px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 .tool {
   display: grid;
-  gap: 4px;
-  font-size: 0.68rem;
+  gap: 2px;
+  font-size: 0.62rem;
   color: var(--ink-soft);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  flex: 0 0 auto;
 }
 
 .tool-full {
@@ -477,16 +489,24 @@ body {
 .tool-color input,
 .bg-controls select {
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 500;
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
-  padding: 8px 10px;
-  min-height: 38px;
+  padding: 5px 7px;
+  min-height: 32px;
+}
+
+.tool #fontFamily {
+  max-width: 118px;
+}
+
+.tool-leading select {
+  max-width: 64px;
 }
 
 .tool select:focus,
@@ -498,30 +518,31 @@ body {
 }
 
 .tool-color input {
-  width: 44px;
-  padding: 4px;
+  width: 34px;
+  height: 32px;
+  padding: 2px;
   cursor: pointer;
 }
 
 .size-combo {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .size-combo input[type="number"] {
-  width: 72px;
+  width: 54px;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 500;
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
-  padding: 8px 6px;
-  min-height: 38px;
+  padding: 5px 4px;
+  min-height: 32px;
 }
 
 .size-combo input[type="number"]:focus {
@@ -531,7 +552,7 @@ body {
 }
 
 .size-unit {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: var(--ink-soft);
   letter-spacing: 0.04em;
@@ -539,34 +560,38 @@ body {
 }
 
 .tool-panel-opacity {
-  min-width: 118px;
+  min-width: 88px;
+  max-width: 96px;
 }
 
 .tool-panel-opacity input[type="range"] {
   width: 100%;
+  height: 32px;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
 .tool-divider {
   width: 1px;
-  height: 34px;
+  height: 28px;
   background: var(--line-strong);
-  margin: 0 2px 2px;
+  margin: 0 1px 2px;
   align-self: end;
+  flex: 0 0 auto;
 }
 
 .tool-group {
   display: flex;
-  gap: 4px;
-  padding-bottom: 1px;
+  gap: 3px;
+  padding-bottom: 0;
+  flex: 0 0 auto;
 }
 
 .icon-btn {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
   font: inherit;
@@ -574,6 +599,7 @@ body {
   display: grid;
   place-items: center;
   transition: all 0.15s ease;
+  flex: 0 0 auto;
 }
 
 .icon-btn:hover,
@@ -586,16 +612,24 @@ body {
 
 .topbar-actions {
   display: flex;
-  gap: 8px;
-  margin-left: auto;
+  gap: 6px;
+  margin-left: 0;
   align-items: center;
+  flex: 0 0 auto;
+}
+
+.topbar-actions .btn {
+  padding: 7px 10px;
+  min-height: 32px;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .format-hint {
   margin: 0;
-  max-width: 180px;
-  font-size: 0.72rem;
-  line-height: 1.3;
+  max-width: 140px;
+  font-size: 0.68rem;
+  line-height: 1.25;
   color: var(--gold);
   font-weight: 650;
   opacity: 0;
@@ -1250,6 +1284,7 @@ body.is-exporting .text-panel-handle {
     flex: 1 1 100%;
     max-height: min(36vh, 260px);
     overflow: auto;
+    flex-wrap: wrap;
     -webkit-overflow-scrolling: touch;
     padding: 8px;
     gap: 8px;
