@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="css/styles.css?v=12" />
+    <link rel="stylesheet" href="css/styles.css?v=14" />
     <style id="gate-critical">
       /* Estilos críticos del login: aseguran el layout aunque falle la caché del CSS */
       #gate.gate {
@@ -492,13 +492,14 @@
                 />
                 <span class="file-drop-icon" aria-hidden="true">＋</span>
                 <span class="file-drop-title">Importar JPG / imagen</span>
-                <span class="file-drop-sub"
-                  >Queda en este navegador. Después usá “Exportar” para guardarlo en el repo</span
-                >
+                <span class="file-drop-sub">Queda en este navegador. No descarga archivos</span>
               </label>
               <button type="button" id="btnExportBgs" class="btn ghost block" style="margin-top: 10px">
-                Exportar fondos al repo (elegir carpeta)
+                Copiar a carpeta backgrounds/ (opcional)
               </button>
+              <p class="hint-inline" style="margin: 8px 0 0; font-size: 0.82rem; color: var(--ink-soft); line-height: 1.4">
+                Opcional: elige <code>backgrounds</code> del proyecto para copiar ahí. Nunca baja nada a Descargas.
+              </p>
               <p class="panel-status" id="bgStatus" aria-live="polite"></p>
             </div>
 
@@ -565,8 +566,8 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=12"></script>
-    <script src="js/auth.js?v=12"></script>
-    <script type="module" src="js/app.js?v=12"></script>
+    <script src="js/config.js?v=14"></script>
+    <script src="js/auth.js?v=14"></script>
+    <script type="module" src="js/app.js?v=14"></script>
   </body>
 </html>
