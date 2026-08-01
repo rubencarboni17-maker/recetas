@@ -390,8 +390,11 @@ body {
 .brand-text #appTitle {
   font-family: var(--font-display);
   font-weight: 650;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   letter-spacing: -0.01em;
+  line-height: 1.15;
+  max-width: 11rem;
+  white-space: normal;
 }
 
 .brand-sub {
