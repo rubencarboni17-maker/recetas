@@ -12,6 +12,8 @@
     { "id": "fondo-10", "name": "Fondo 10", "file": "fondo_10.png" },
     { "id": "fondo-11", "name": "Fondo 11", "file": "fondo_11.png" },
     { "id": "fondo-12", "name": "Fondo 12", "file": "fondo_12.png" },
-    { "id": "fondo-13", "name": "Fondo 13", "file": "fondo_13.png" }
+    { "id": "fondo-13", "name": "Fondo 13", "file": "fondo_13.png" },
+    { "id": "fondo-14", "name": "Fondo 14", "file": "fondo_14.png" },
+    { "id": "fondo-15", "name": "Fondo 15", "file": "fondo_15.png" }
   ]
 }
