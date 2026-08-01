@@ -1920,6 +1920,185 @@ function safeFileName(name, fallbackExt = "jpg") {
   return `${base || "fondo"}.${fallbackExt}`;
 }
 
+function recipeExportSlug() {
+  const raw =
+    getActiveContent()?.innerText?.trim()?.split(/\n+/)[0]?.slice(0, 40) || "receta";
+  return safeFileName(raw, "pdf").replace(/\.pdf$/i, "") || "receta";
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function loadExternalScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-export-src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === "1") resolve();
+      else existing.addEventListener("load", () => resolve(), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.dataset.exportSrc = src;
+    script.onload = () => {
+      script.dataset.loaded = "1";
+      resolve();
+    };
+    script.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureExportLibraries() {
+  if (!window.html2canvas) {
+    await loadExternalScript(
+      "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"
+    );
+  }
+  if (!window.jspdf?.jsPDF) {
+    await loadExternalScript(
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"
+    );
+  }
+}
+
+async function capturePageCanvases() {
+  await ensureExportLibraries();
+  const pages = [...document.querySelectorAll(".page")];
+  if (!pages.length) return [];
+
+  const prevScale = document.documentElement.style.getPropertyValue("--page-scale");
+  document.documentElement.style.setProperty("--page-scale", "1");
+  document.body.classList.add("is-exporting");
+
+  // Esperar layout sin escala móvil
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  try {
+    const canvases = [];
+    for (const page of pages) {
+      // Ocultar asas de recuadro durante la captura
+      page.querySelectorAll(".text-panel-handle").forEach((h) => {
+        h.style.visibility = "hidden";
+      });
+      const canvas = await window.html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#fffcf7",
+        logging: false,
+      });
+      page.querySelectorAll(".text-panel-handle").forEach((h) => {
+        h.style.visibility = "";
+      });
+      canvases.push(canvas);
+    }
+    return canvases;
+  } finally {
+    document.body.classList.remove("is-exporting");
+    if (prevScale) {
+      document.documentElement.style.setProperty("--page-scale", prevScale);
+    } else {
+      document.documentElement.style.removeProperty("--page-scale");
+    }
+    updatePageScale();
+  }
+}
+
+/** Encaja un canvas A4 dentro de un cuadrado 1080×1080 (sin cortar el contenido). */
+function fitCanvasIntoSquare(sourceCanvas, size = 1080) {
+  const out = document.createElement("canvas");
+  out.width = size;
+  out.height = size;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#fffcf7";
+  ctx.fillRect(0, 0, size, size);
+
+  const scale = Math.min(size / sourceCanvas.width, size / sourceCanvas.height);
+  const w = sourceCanvas.width * scale;
+  const h = sourceCanvas.height * scale;
+  const x = (size - w) / 2;
+  const y = (size - h) / 2;
+  ctx.drawImage(sourceCanvas, x, y, w, h);
+  return out;
+}
+
+async function exportA4AndInstagram() {
+  const btn = $("btnExportPdfs");
+  const hint = $("formatHint");
+  const setStatus = (msg) => {
+    if (hint) {
+      hint.textContent = msg;
+      hint.classList.add("visible");
+    }
+  };
+
+  if (btn) {
+    btn.disabled = true;
+    btn.dataset.busy = "1";
+  }
+  setStatus("Generando A4 + Instagram…");
+
+  try {
+    const canvases = await capturePageCanvases();
+    if (!canvases.length) {
+      setStatus("No hay hojas para exportar.");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const slug = recipeExportSlug();
+
+    // 1) PDF A4
+    const a4 = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+    canvases.forEach((canvas, i) => {
+      if (i > 0) a4.addPage("a4", "portrait");
+      const img = canvas.toDataURL("image/jpeg", 0.92);
+      a4.addImage(img, "JPEG", 0, 0, 210, 297);
+    });
+    a4.save(`${slug}-A4.pdf`);
+
+    // 2) Imagen(es) cuadrada(s) para Instagram (IG no usa PDF)
+    for (let i = 0; i < canvases.length; i++) {
+      const square = fitCanvasIntoSquare(canvases[i], 1080);
+      const blob = await new Promise((resolve) =>
+        square.toBlob((b) => resolve(b), "image/png")
+      );
+      const suffix = canvases.length > 1 ? `-IG-${i + 1}` : "-IG";
+      downloadBlob(`${slug}${suffix}.png`, blob);
+      if (i < canvases.length - 1) {
+        await new Promise((r) => setTimeout(r, 280));
+      }
+    }
+
+    setStatus(
+      canvases.length > 1
+        ? `Listo: PDF A4 + ${canvases.length} PNG cuadrados (1080×1080) para Instagram.`
+        : "Listo: PDF A4 + PNG cuadrado (1080×1080) para Instagram."
+    );
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hint?.classList.remove("visible"), 5000);
+  } catch (err) {
+    console.error(err);
+    setStatus("No se pudo exportar. Probá de nuevo o usá Imprimir A4.");
+    flashFormatHint("Error al exportar. Revisá la consola o probá Imprimir A4.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      delete btn.dataset.busy;
+    }
+  }
+}
+
 function dataUrlToBlob(dataUrl) {
   const [header, data] = String(dataUrl).split(",");
   const mime = (header.match(/data:([^;]+)/) || [])[1] || "application/octet-stream";
@@ -2252,6 +2431,10 @@ function wireToolbar() {
 
   $("btnAddPage").addEventListener("click", addPage);
   $("btnPrint").addEventListener("click", () => window.print());
+  const exportPdfsBtn = $("btnExportPdfs");
+  if (exportPdfsBtn) {
+    exportPdfsBtn.addEventListener("click", () => exportA4AndInstagram());
+  }
   $("btnInsert").addEventListener("click", insertSelected);
   $("btnSelectAll").addEventListener("click", () => {
     document
