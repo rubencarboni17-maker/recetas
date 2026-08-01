@@ -93,6 +93,24 @@ window.RECETAS_CONFIG = {
     }
   }
 
+  function clearSession() {
+    try {
+      localStorage.removeItem(STORAGE_SESSION);
+      sessionStorage.removeItem(STORAGE_SESSION);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function logout() {
+    clearSession();
+    document.body.classList.remove("app-open");
+    window.__RECETAS_READY = false;
+    window.location.reload();
+  }
+
+  window.recetasLogout = logout;
+
   function unlockApp() {
     rememberSession();
     const gate = document.getElementById("gate");
@@ -142,7 +160,6 @@ window.RECETAS_CONFIG = {
     const localKey = getLocalKey();
     const encoded = encodeKey(password);
 
-    // Primera vez: no hay clave en repo ni local
     if (!repoKey && !localKey) {
       try {
         saveLocalKey(password);
@@ -152,14 +169,12 @@ window.RECETAS_CONFIG = {
         return false;
       }
       offerRepoPasswordSave(encoded);
-      // Entrar igual; el usuario sube config.js al repo
       setTimeout(unlockApp, 900);
       return true;
     }
 
     const expected = repoKey || localKey;
     if (encoded === expected || password === expected) {
-      // Si solo estaba en local, ofrecer de nuevo el config para el repo
       if (!repoKey) {
         offerRepoPasswordSave(encoded);
         setTimeout(unlockApp, 900);
@@ -181,6 +196,12 @@ window.RECETAS_CONFIG = {
     if (gateBrand) gateBrand.textContent = brand;
     if (appTitle) appTitle.textContent = brand;
     document.title = brand;
+
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", logout);
+    }
 
     if (!cfg.requirePassword) {
       unlockApp();
