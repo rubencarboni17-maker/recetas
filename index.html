@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="css/styles.css?v=10" />
+    <link rel="stylesheet" href="css/styles.css?v=11" />
     <style id="gate-critical">
       /* Estilos críticos del login: aseguran el layout aunque falle la caché del CSS */
       #gate.gate {
@@ -113,37 +113,101 @@
       #gate .gate-card {
         position: relative !important;
         z-index: 2 !important;
-        width: min(100%, 420px) !important;
+        width: min(100%, 440px) !important;
         margin: 0 !important;
-        background: linear-gradient(180deg, #fffcf7, #f6f0e6) !important;
-        border: 1px solid rgba(255,255,255,0.4) !important;
+        background: linear-gradient(180deg, #fffcf7 0%, #f7f1e6 100%) !important;
+        border: 1px solid rgba(255,255,255,0.45) !important;
         border-radius: 28px !important;
-        padding: 42px 34px 34px !important;
+        padding: 44px 36px 36px !important;
         box-shadow: 0 28px 70px rgba(0,0,0,0.4), 0 0 0 1px rgba(45,106,79,0.1) !important;
+        text-align: center !important;
+      }
+      #gate .gate-ornament {
+        position: absolute !important;
+        inset: 0 auto auto 0 !important;
+        width: 100% !important;
+        height: 4px !important;
+        background: linear-gradient(90deg, #1b4332, #2d6a4f 35%, #c45c48 70%, #e2c35a) !important;
       }
       #gate .gate-brand {
         font-family: "Fraunces", Georgia, serif !important;
-        font-size: clamp(1.35rem, 3.6vw, 1.95rem) !important;
+        font-size: clamp(1.7rem, 4.2vw, 2.15rem) !important;
         font-weight: 700 !important;
         letter-spacing: -0.03em !important;
         text-transform: none !important;
         color: #1b4332 !important;
-        margin: 0 0 6px !important;
-        line-height: 1.15 !important;
+        margin: 8px auto 10px !important;
+        line-height: 1.12 !important;
+        text-align: center !important;
+        text-wrap: balance !important;
+        max-width: 14ch !important;
       }
       #gate .gate-card h1 {
-        font-family: "Fraunces", Georgia, serif !important;
-        font-size: clamp(1.6rem, 3.5vw, 2.1rem) !important;
-        margin: 0 0 8px !important;
-        color: #152019 !important;
+        font-family: "Manrope", system-ui, sans-serif !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.16em !important;
+        text-transform: uppercase !important;
+        margin: 0 auto 14px !important;
+        color: #5a675e !important;
+        text-align: center !important;
+      }
+      #gate .gate-divider {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 10px !important;
+        margin: 0 auto 14px !important;
+        color: #9a7b3c !important;
+        opacity: 0.85 !important;
+      }
+      #gate .gate-divider::before,
+      #gate .gate-divider::after {
+        content: "" !important;
+        width: 42px !important;
+        height: 1px !important;
+        background: linear-gradient(90deg, transparent, #9a7b3c) !important;
+      }
+      #gate .gate-divider::after {
+        background: linear-gradient(90deg, #9a7b3c, transparent) !important;
       }
       #gate .gate-tagline {
-        margin: 0 0 12px !important;
-        font-size: 0.78rem !important;
-        letter-spacing: 0.1em !important;
+        margin: 0 auto 8px !important;
+        font-size: 0.8rem !important;
+        letter-spacing: 0.06em !important;
         text-transform: uppercase !important;
         color: #9a7b3c !important;
         font-weight: 700 !important;
+        text-align: center !important;
+        line-height: 1.45 !important;
+        max-width: 28ch !important;
+      }
+      #gate .gate-hint {
+        margin: 0 auto 22px !important;
+        text-align: center !important;
+        color: #5a675e !important;
+        font-size: 0.95rem !important;
+        line-height: 1.45 !important;
+      }
+      #gate .gate-card form {
+        text-align: left !important;
+      }
+      #gate .gate-card input {
+        text-align: center !important;
+        margin-bottom: 14px !important;
+        padding: 15px 16px !important;
+        border-radius: 14px !important;
+        font-size: 1rem !important;
+      }
+      #gate .gate-card button[type="submit"] {
+        width: 100% !important;
+        border-radius: 14px !important;
+        padding: 14px 16px !important;
+        font-size: 1rem !important;
+        letter-spacing: 0.01em !important;
+      }
+      #gate .gate-error {
+        text-align: center !important;
       }
       @media (max-width: 700px) {
         #gate .ing-whisk,
@@ -253,6 +317,7 @@
         <div class="gate-ornament" aria-hidden="true"></div>
         <p class="gate-brand" id="gateBrand">Las recetas del Abuelo</p>
         <h1 id="gateTitle">Acceso</h1>
+        <div class="gate-divider" aria-hidden="true">✦</div>
         <p class="gate-tagline">Tu estudio de impresión para recetas</p>
         <p class="gate-hint" id="gateHint">Ingresá tu contraseña para continuar.</p>
         <form id="gateForm" autocomplete="off">
@@ -500,8 +565,8 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=10"></script>
-    <script src="js/auth.js?v=10"></script>
-    <script type="module" src="js/app.js?v=10"></script>
+    <script src="js/config.js?v=11"></script>
+    <script src="js/auth.js?v=11"></script>
+    <script type="module" src="js/app.js?v=11"></script>
   </body>
 </html>
