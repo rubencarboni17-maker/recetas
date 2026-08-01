@@ -750,14 +750,12 @@ function insertSelected() {
   const content = getActiveContent();
   if (!content) return;
 
+  // Solo el texto real del PDF (sin títulos sintéticos "Página…" / "Bloque…")
   const html = selected
     .map((s) => {
       const lines = escapeHtml(s.text).split("\n");
-      const title = escapeHtml(
-        s.kind === "page" ? `Página ${s.page}` : s.title.split("\n")[0]
-      );
       const body = lines.map((line) => (line ? line : "<br>")).join("<br>");
-      return `<div class="block"><h3 class="block-title">${title}</h3><div>${body}</div></div>`;
+      return `<div class="block">${body}</div>`;
     })
     .join("");
 
@@ -971,6 +969,12 @@ function syncToolbarFromSelection() {
   document.querySelectorAll("[data-align]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.align === activeAlign);
   });
+
+  const panelBtn = $("btnTextPanel");
+  if (panelBtn) {
+    const inPanel = Boolean(el.closest?.(".text-panel"));
+    panelBtn.classList.toggle("active", inPanel);
+  }
 }
 
 function scheduleToolbarSync() {
@@ -1106,6 +1110,52 @@ function applyLineHeight(value) {
 
 function applyTextColor(value) {
   applyInlineStylesToSelection({ color: value });
+}
+
+/** Recuadro semitransparente detrás del texto para atenuar el fondo. */
+function applyTextPanel() {
+  if (!requireTextSelection()) return;
+
+  const sel = window.getSelection();
+  const range = sel.getRangeAt(0);
+  if (range.collapsed) {
+    flashFormatHint("Seleccioná el texto al que querés ponerle el recuadro.");
+    return;
+  }
+
+  const startEl = nodeToElement(range.startContainer);
+  const endEl = nodeToElement(range.endContainer);
+  const existing = startEl?.closest?.(".text-panel");
+
+  // Toggle: si ya está en un recuadro, quitarlo
+  if (existing && (!endEl || existing.contains(endEl))) {
+    const parent = existing.parentNode;
+    if (!parent) return;
+    const frag = document.createDocumentFragment();
+    while (existing.firstChild) frag.appendChild(existing.firstChild);
+    parent.insertBefore(frag, existing);
+    parent.removeChild(existing);
+    parent.normalize();
+    scheduleToolbarSync();
+    return;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "text-panel";
+  try {
+    range.surroundContents(panel);
+  } catch {
+    const contents = range.extractContents();
+    panel.appendChild(contents);
+    range.insertNode(panel);
+  }
+
+  const next = document.createRange();
+  next.selectNodeContents(panel);
+  sel.removeAllRanges();
+  sel.addRange(next);
+  savedRange = next.cloneRange();
+  scheduleToolbarSync();
 }
 
 function applyAlign(align) {
@@ -1838,6 +1888,10 @@ function wireToolbar() {
   $("btnBullets").addEventListener("click", applyBullets);
   $("btnIndent").addEventListener("click", () => applyTabIndent(false));
   $("btnOutdent").addEventListener("click", () => applyTabIndent(true));
+  const btnTextPanel = $("btnTextPanel");
+  if (btnTextPanel) {
+    btnTextPanel.addEventListener("click", applyTextPanel);
+  }
 
   document.querySelectorAll("[data-align]").forEach((btn) => {
     btn.addEventListener("click", () => applyAlign(btn.dataset.align));
