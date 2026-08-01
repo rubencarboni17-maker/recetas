@@ -19,6 +19,7 @@ const state = {
   repoBackgrounds: [],
   bgFit: "cover",
   bgOverlay: 28,
+  panelOpacity: 62,
   sections: [],
   activePageIndex: 0,
   pageCount: 1,
@@ -62,6 +63,7 @@ function loadPrefs() {
     if (prefs.backgroundId) state.backgroundId = prefs.backgroundId;
     if (prefs.bgFit) state.bgFit = prefs.bgFit;
     if (typeof prefs.bgOverlay === "number") state.bgOverlay = prefs.bgOverlay;
+    if (typeof prefs.panelOpacity === "number") state.panelOpacity = prefs.panelOpacity;
   } catch {
     /* ignore */
   }
@@ -74,6 +76,7 @@ function savePrefs() {
       backgroundId: state.backgroundId,
       bgFit: state.bgFit,
       bgOverlay: state.bgOverlay,
+      panelOpacity: state.panelOpacity,
     })
   );
 }
@@ -769,6 +772,7 @@ function insertSelected() {
 let savedRange = null;
 let hintTimer = null;
 let toolbarSyncTimer = null;
+let lastTextPanel = null;
 
 function flashFormatHint(message) {
   const el = $("formatHint");
@@ -971,9 +975,20 @@ function syncToolbarFromSelection() {
   });
 
   const panelBtn = $("btnTextPanel");
-  if (panelBtn) {
-    const inPanel = Boolean(el.closest?.(".text-panel"));
-    panelBtn.classList.toggle("active", inPanel);
+  const panel = el.closest?.(".text-panel");
+  if (panelBtn) panelBtn.classList.toggle("active", Boolean(panel));
+  lastTextPanel = panel || null;
+
+  const opacityInput = $("panelOpacity");
+  const opacityValue = $("panelOpacityValue");
+  if (opacityInput && document.activeElement !== opacityInput) {
+    let pct = state.panelOpacity;
+    if (panel) {
+      const fromPanel = readPanelOpacity(panel);
+      if (fromPanel != null) pct = fromPanel;
+    }
+    opacityInput.value = String(pct);
+    if (opacityValue) opacityValue.textContent = `${pct}%`;
   }
 }
 
@@ -1112,6 +1127,87 @@ function applyTextColor(value) {
   applyInlineStylesToSelection({ color: value });
 }
 
+function clampPanelOpacity(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return state.panelOpacity;
+  return Math.min(95, Math.max(10, Math.round(n)));
+}
+
+function panelBackground(opacityPct) {
+  const a = clampPanelOpacity(opacityPct) / 100;
+  return `rgba(255, 252, 247, ${a})`;
+}
+
+function setPanelOpacityStyle(panel, opacityPct) {
+  const pct = clampPanelOpacity(opacityPct);
+  panel.style.setProperty("--panel-alpha", String(pct / 100));
+  panel.style.background = panelBackground(pct);
+  panel.dataset.opacity = String(pct);
+}
+
+function readPanelOpacity(panel) {
+  if (!panel) return null;
+  if (panel.dataset.opacity) {
+    const n = Number(panel.dataset.opacity);
+    if (Number.isFinite(n)) return clampPanelOpacity(n);
+  }
+  const cssVar = panel.style.getPropertyValue("--panel-alpha");
+  if (cssVar) {
+    const n = Math.round(parseFloat(cssVar) * 100);
+    if (Number.isFinite(n)) return clampPanelOpacity(n);
+  }
+  const bg = window.getComputedStyle(panel).backgroundColor;
+  const m = bg.match(/rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)\s*\)/i);
+  if (m) return clampPanelOpacity(Math.round(parseFloat(m[1]) * 100));
+  return null;
+}
+
+function syncPanelOpacityControls(pct) {
+  const value = clampPanelOpacity(pct);
+  const input = $("panelOpacity");
+  const label = $("panelOpacityValue");
+  if (input) input.value = String(value);
+  if (label) label.textContent = `${value}%`;
+}
+
+function getPanelFromSelection() {
+  const sel = window.getSelection();
+  if (sel?.rangeCount) {
+    const el = nodeToElement(sel.focusNode || sel.anchorNode);
+    const live = el?.closest?.(".text-panel");
+    if (live) return live;
+  }
+  if (savedRange) {
+    const el = nodeToElement(savedRange.startContainer);
+    const fromSaved = el?.closest?.(".text-panel");
+    if (fromSaved) return fromSaved;
+  }
+  if (lastTextPanel && document.body.contains(lastTextPanel)) {
+    return lastTextPanel;
+  }
+  return null;
+}
+
+/** Ajusta la opacidad del recuadro seleccionado (o el valor por defecto para nuevos). */
+function applyPanelOpacity(value) {
+  const pct = clampPanelOpacity(value);
+  state.panelOpacity = pct;
+  syncPanelOpacityControls(pct);
+  savePrefs();
+
+  const panel = getPanelFromSelection();
+  if (panel) {
+    setPanelOpacityStyle(panel, pct);
+    return;
+  }
+
+  // Si hay selección guardada dentro de un recuadro, restaurar y aplicar
+  if (restoreSavedSelection()) {
+    const again = getPanelFromSelection();
+    if (again) setPanelOpacityStyle(again, pct);
+  }
+}
+
 /** Recuadro semitransparente detrás del texto para atenuar el fondo. */
 function applyTextPanel() {
   if (!requireTextSelection()) return;
@@ -1142,6 +1238,7 @@ function applyTextPanel() {
 
   const panel = document.createElement("div");
   panel.className = "text-panel";
+  setPanelOpacityStyle(panel, state.panelOpacity);
   try {
     range.surroundContents(panel);
   } catch {
@@ -1891,6 +1988,16 @@ function wireToolbar() {
   const btnTextPanel = $("btnTextPanel");
   if (btnTextPanel) {
     btnTextPanel.addEventListener("click", applyTextPanel);
+  }
+
+  const panelOpacity = $("panelOpacity");
+  if (panelOpacity) {
+    panelOpacity.value = String(state.panelOpacity);
+    const label = $("panelOpacityValue");
+    if (label) label.textContent = `${state.panelOpacity}%`;
+    panelOpacity.addEventListener("input", (e) => {
+      applyPanelOpacity(e.target.value);
+    });
   }
 
   document.querySelectorAll("[data-align]").forEach((btn) => {
