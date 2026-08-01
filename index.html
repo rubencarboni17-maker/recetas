@@ -11,8 +11,8 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="css/styles.css?v=25" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231b4332'/%3E%3Cpath d='M7.2 20.8c0 3.2 2.4 5.6 5.6 5.6s5.6-2.4 5.6-5.6c0-2.2-2.5-5.8-5.6-9.2-3.1 3.4-5.6 7-5.6 9.2z' fill='%23fff'/%3E%3Cpath d='M12.8 11.2V5.4c0-.8.6-1.4 1.4-1.4.8 0 1.4.6 1.4 1.4v5.8' stroke='%23e2c35a' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M21.2 6.2c2.8.4 4.8 2.2 5.2 4.6-2.6.6-5-1-6.2-3.4-.2-.4.2-1.2 1-1.2z' fill='%23e2c35a'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/styles.css?v=26" />
     <style id="gate-critical">
       /* Estilos críticos del login: aseguran el layout aunque falle la caché del CSS */
       #gate.gate {
@@ -341,7 +341,41 @@
       <div class="app-chrome">
       <header class="topbar">
         <div class="topbar-brand">
-          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="22" height="22" fill="none" aria-hidden="true">
+              <!-- cucharón -->
+              <path
+                d="M7.2 20.8c0 3.2 2.4 5.6 5.6 5.6s5.6-2.4 5.6-5.6c0-2.2-2.5-5.8-5.6-9.2-3.1 3.4-5.6 7-5.6 9.2Z"
+                fill="#fff"
+                fill-opacity=".95"
+              />
+              <path
+                d="M12.8 11.2V5.4c0-.8.6-1.4 1.4-1.4.8 0 1.4.6 1.4 1.4v5.8"
+                stroke="#e2c35a"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M10.4 21.2c.5 1.7 2 2.9 3.8 2.9"
+                stroke="#1b4332"
+                stroke-opacity=".25"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+              <!-- hojita -->
+              <path
+                d="M21.2 6.2c2.8.4 4.8 2.2 5.2 4.6-2.6.6-5-1-6.2-3.4-.2-.4.2-1.2 1-1.2Z"
+                fill="#e2c35a"
+              />
+              <path
+                d="M21.8 7.2c1.2 1.4 2.6 2.2 4.2 2.5"
+                stroke="#1b4332"
+                stroke-opacity=".2"
+                stroke-width="1"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
           <div class="brand-text">
             <span id="appTitle">Las recetas del Abuelo</span>
             <span class="brand-sub">Estudio de impresión</span>
@@ -391,8 +425,8 @@
             </datalist>
           </label>
 
-          <label class="tool">
-            <span class="tool-label">Interlineado</span>
+          <label class="tool tool-leading">
+            <span class="tool-label">Interl.</span>
             <select id="lineHeight" title="Interlineado">
               <option value="1.25">1.25</option>
               <option value="1.4">1.4</option>
@@ -424,7 +458,7 @@
           </div>
 
           <label class="tool tool-panel-opacity" title="Opacidad del recuadro">
-            <span class="tool-label">Recuadro <span id="panelOpacityValue">62%</span></span>
+            <span class="tool-label">Opac. <span id="panelOpacityValue">62%</span></span>
             <input
               type="range"
               id="panelOpacity"
@@ -435,6 +469,8 @@
               aria-label="Opacidad del recuadro"
             />
           </label>
+
+          <div class="tool-divider" aria-hidden="true"></div>
 
           <div class="tool-group" role="group" aria-label="Listas e sangría">
             <button type="button" class="icon-btn" id="btnBullets" title="Viñetas" aria-label="Agregar viñetas">
@@ -476,21 +512,21 @@
 
         <div class="topbar-actions">
           <p class="format-hint" id="formatHint" aria-live="polite"></p>
-          <button type="button" id="btnAddPage" class="btn ghost">+ Página</button>
+          <button type="button" id="btnAddPage" class="btn ghost" title="Agregar página">+ Página</button>
           <button type="button" id="btnLogout" class="btn ghost" title="Cerrar sesión y volver al login">
             Salir
           </button>
           <button type="button" id="btnPrint" class="btn ghost" title="Imprimir solo en formato A4">
-            Imprimir A4
+            Imprimir
           </button>
           <button
             type="button"
             id="btnExportPdfs"
             class="btn primary"
-            <title="Descarga PDF A4 e imagen Instagram 1080×1440 a pantalla completa (sin bandas)"
+            title="Descarga PDF A4 e imagen Instagram 1080×1440 a pantalla completa (sin bandas)"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a.75.75 0 0 1 .75.75V8h2.6a.75.75 0 0 1 .53 1.28l-3.35 3.35a.75.75 0 0 1-1.06 0L4.12 9.28A.75.75 0 0 1 4.65 8H7.25V2.25A.75.75 0 0 1 8 1.5zM2.5 13.25h11a.75.75 0 0 1 0 1.5h-11a.75.75 0 0 1 0-1.5z"/></svg>
-            Exportar A4 + IG
+            A4 + IG
           </button>
         </div>
       </header>
@@ -600,8 +636,8 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=25"></script>
-    <script src="js/auth.js?v=25"></script>
-    <script type="module" src="js/app.js?v=25"></script>
+    <script src="js/config.js?v=26"></script>
+    <script src="js/auth.js?v=26"></script>
+    <script type="module" src="js/app.js?v=26"></script>
   </body>
 </html>
