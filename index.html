@@ -11,17 +11,92 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=3" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/styles.css?v=7" />
   </head>
   <body>
     <div class="atmosphere" aria-hidden="true"></div>
 
     <!-- Acceso -->
     <div id="gate" class="gate" hidden>
+      <div class="gate-scene" aria-hidden="true">
+        <div class="gate-scene-wash"></div>
+        <div class="gate-scene-grain"></div>
+
+        <svg class="ing ing-basil" viewBox="0 0 80 90" fill="none">
+          <path d="M40 82 C40 50 18 42 12 22 C28 28 36 48 40 82 Z" fill="#3f7a55"/>
+          <path d="M40 82 C40 48 62 40 70 18 C54 26 46 50 40 82 Z" fill="#2f6b4f"/>
+          <path d="M40 82 V28" stroke="#1b4332" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+
+        <svg class="ing ing-tomato" viewBox="0 0 72 72">
+          <circle cx="36" cy="40" r="22" fill="#c45c48"/>
+          <circle cx="28" cy="34" r="6" fill="#d97866" opacity=".45"/>
+          <path d="M36 20 C34 12 28 10 24 12 C30 14 34 18 36 24 C38 16 44 12 50 12 C44 12 38 16 36 20 Z" fill="#2f6b4f"/>
+        </svg>
+
+        <svg class="ing ing-lemon" viewBox="0 0 70 70">
+          <ellipse cx="35" cy="36" rx="22" ry="18" transform="rotate(-28 35 36)" fill="#e2c35a"/>
+          <ellipse cx="30" cy="32" rx="8" ry="5" transform="rotate(-28 30 32)" fill="#f0d978" opacity=".55"/>
+          <path d="M48 18 C52 14 58 16 56 22" stroke="#2f6b4f" stroke-width="2" fill="none"/>
+        </svg>
+
+        <svg class="ing ing-garlic" viewBox="0 0 64 64">
+          <path d="M32 12 C20 18 14 32 18 46 C22 56 42 56 46 46 C50 32 44 18 32 12 Z" fill="#f4efe4"/>
+          <path d="M32 14 C28 28 28 44 32 54 M32 14 C36 28 36 44 32 54" stroke="#d9d0c2" stroke-width="1.5" fill="none"/>
+          <path d="M28 12 C30 6 34 6 36 12" stroke="#9a7b3c" stroke-width="2" fill="none"/>
+        </svg>
+
+        <svg class="ing ing-whisk" viewBox="0 0 40 110">
+          <path d="M20 108 V42" stroke="#8b6b45" stroke-width="4" stroke-linecap="round"/>
+          <path d="M8 10 C4 28 8 40 20 42 C32 40 36 28 32 10 C28 22 12 22 8 10 Z" stroke="#6b7280" stroke-width="2.2" fill="none"/>
+          <path d="M12 14 C10 26 14 36 20 38 C26 36 30 26 28 14" stroke="#9ca3af" stroke-width="1.4" fill="none"/>
+        </svg>
+
+        <svg class="ing ing-spoon" viewBox="0 0 36 120">
+          <ellipse cx="18" cy="22" rx="14" ry="18" fill="#c4a574"/>
+          <path d="M18 38 V112" stroke="#a88455" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+
+        <svg class="ing ing-chili" viewBox="0 0 40 90">
+          <path d="M22 14 C34 28 36 58 24 82 C10 70 8 36 18 18 C14 10 10 8 8 8 C14 10 18 12 22 14 Z" fill="#b33b2e"/>
+          <path d="M20 12 C22 4 28 4 30 10" stroke="#2f6b4f" stroke-width="2.5" fill="none"/>
+        </svg>
+
+        <svg class="ing ing-olive" viewBox="0 0 48 48">
+          <ellipse cx="24" cy="26" rx="14" ry="10" transform="rotate(-35 24 26)" fill="#5f7a3a"/>
+          <ellipse cx="20" cy="24" rx="4" ry="2.5" transform="rotate(-35 20 24)" fill="#8fa85c" opacity=".5"/>
+          <path d="M30 14 C34 8 40 10 38 16" stroke="#2f6b4f" stroke-width="2" fill="none"/>
+        </svg>
+
+        <svg class="ing ing-herb" viewBox="0 0 90 50">
+          <path d="M8 40 C28 10 52 8 82 18" stroke="#2f6b4f" stroke-width="2" fill="none"/>
+          <path d="M22 28 C18 18 12 16 10 20 C16 20 20 26 24 34" fill="#3f7a55"/>
+          <path d="M40 22 C38 12 30 10 28 16 C34 14 38 20 42 28" fill="#2f6b4f"/>
+          <path d="M58 18 C58 8 50 6 48 12 C54 10 58 16 60 24" fill="#4f8a62"/>
+        </svg>
+
+        <svg class="ing ing-egg" viewBox="0 0 56 68">
+          <ellipse cx="28" cy="36" rx="20" ry="26" fill="#f7f1df"/>
+          <ellipse cx="22" cy="30" rx="6" ry="8" fill="#fff" opacity=".45"/>
+        </svg>
+
+        <svg class="ing ing-rolling" viewBox="0 0 140 36">
+          <rect x="18" y="10" width="104" height="16" rx="8" fill="#c4a574"/>
+          <rect x="4" y="14" width="18" height="8" rx="3" fill="#8b6b45"/>
+          <rect x="118" y="14" width="18" height="8" rx="3" fill="#8b6b45"/>
+        </svg>
+
+        <div class="gate-steam s1"></div>
+        <div class="gate-steam s2"></div>
+        <div class="gate-steam s3"></div>
+      </div>
+
       <div class="gate-card">
         <div class="gate-ornament" aria-hidden="true"></div>
         <p class="gate-brand" id="gateBrand">Recetas A4</p>
         <h1 id="gateTitle">Acceso</h1>
+        <p class="gate-tagline">Tu estudio de impresión para recetas</p>
         <p class="gate-hint" id="gateHint">Ingresá tu contraseña para continuar.</p>
         <form id="gateForm" autocomplete="off">
           <label class="sr-only" for="gatePassword">Contraseña</label>
@@ -33,7 +108,7 @@
             required
             autofocus
           />
-          <button type="submit" id="gateSubmit">Entrar</button>
+          <button type="submit" id="gateSubmit">Entrar a la cocina</button>
           <p class="gate-error" id="gateError" hidden></p>
         </form>
       </div>
@@ -192,8 +267,13 @@
                 />
                 <span class="file-drop-icon" aria-hidden="true">＋</span>
                 <span class="file-drop-title">Importar JPG / imagen</span>
-                <span class="file-drop-sub">También PNG o WebP · se guarda en este navegador</span>
+                <span class="file-drop-sub"
+                  >Se descarga el archivo + manifest.json para subirlos a backgrounds/ en GitHub</span
+                >
               </label>
+              <button type="button" id="btnExportBgs" class="btn ghost block" style="margin-top: 10px">
+                Exportar fondos para el repo
+              </button>
               <p class="panel-status" id="bgStatus" aria-live="polite"></p>
             </div>
 
@@ -260,8 +340,8 @@
       </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/auth.js?v=3"></script>
-    <script type="module" src="js/app.js?v=3"></script>
+    <script src="js/config.js?v=7"></script>
+    <script src="js/auth.js?v=7"></script>
+    <script type="module" src="js/app.js?v=7"></script>
   </body>
 </html>
