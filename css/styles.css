@@ -1088,6 +1088,21 @@ body {
   margin-left: calc(var(--tab-level, 1) * 2em);
 }
 
+.page-content .text-panel {
+  display: inline-block;
+  vertical-align: top;
+  max-width: 100%;
+  margin: 0.15em 0;
+  padding: 0.55em 0.8em;
+  border-radius: 12px;
+  background: rgba(255, 252, 247, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(26, 34, 28, 0.06),
+    0 8px 22px rgba(26, 34, 28, 0.08);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .mobile-nav {
   display: none;
 }
@@ -1351,6 +1366,14 @@ body {
 
   .page-delete {
     display: none !important;
+  }
+
+  .page-content .text-panel {
+    background: #fffcf7 !important;
+    box-shadow: none;
+    border: 1px solid rgba(26, 34, 28, 0.12);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .page {
