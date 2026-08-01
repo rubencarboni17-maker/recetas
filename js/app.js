@@ -1150,6 +1150,8 @@ function clearActiveTextPanel() {
 
 function ensurePanelResizeHandle(panel) {
   if (!panel) return;
+  // Migrar recuadros viejos: meter el texto en .text-panel-body
+  ensurePanelBody(panel);
   let handle = panel.querySelector(":scope > .text-panel-handle");
   if (!handle) {
     handle = document.createElement("span");
@@ -1161,6 +1163,28 @@ function ensurePanelResizeHandle(panel) {
   }
 }
 
+/** Garantiza que el texto viva dentro de .text-panel-body (acoplado al recuadro). */
+function ensurePanelBody(panel) {
+  if (!panel) return null;
+  let body = panel.querySelector(":scope > .text-panel-body");
+  if (body) return body;
+
+  body = document.createElement("div");
+  body.className = "text-panel-body";
+  const toMove = [];
+  [...panel.childNodes].forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE && node.classList?.contains("text-panel-handle")) {
+      return;
+    }
+    toMove.push(node);
+  });
+  toMove.forEach((node) => body.appendChild(node));
+  const handle = panel.querySelector(":scope > .text-panel-handle");
+  if (handle) panel.insertBefore(body, handle);
+  else panel.appendChild(body);
+  return body;
+}
+
 function startPanelResize(handle, e) {
   e.preventDefault();
   e.stopPropagation();
@@ -1169,12 +1193,17 @@ function startPanelResize(handle, e) {
   if (!panel) return;
 
   setActiveTextPanel(panel);
+  ensurePanelBody(panel);
+
   const startX = e.clientX;
   const startY = e.clientY;
   const startW = panel.offsetWidth;
   const startH = panel.offsetHeight;
   const page = panel.closest(".page-content");
   const maxW = page ? Math.floor(page.clientWidth * 0.98) : 800;
+
+  // Quitar height fijo viejo que dejaba el texto “afuera” visualmente
+  panel.style.height = "auto";
 
   try {
     handle.setPointerCapture(e.pointerId);
@@ -1184,10 +1213,12 @@ function startPanelResize(handle, e) {
   panel.classList.add("is-resizing");
 
   const onMove = (ev) => {
-    const nextW = Math.min(maxW, Math.max(72, Math.round(startW + (ev.clientX - startX))));
-    const nextH = Math.max(40, Math.round(startH + (ev.clientY - startY)));
+    const nextW = Math.min(maxW, Math.max(80, Math.round(startW + (ev.clientX - startX))));
+    const nextMinH = Math.max(36, Math.round(startH + (ev.clientY - startY)));
+    // Ancho fijo + min-height: el texto sigue dentro y puede envolver
     panel.style.width = `${nextW}px`;
-    panel.style.height = `${nextH}px`;
+    panel.style.minHeight = `${nextMinH}px`;
+    panel.style.height = "auto";
   };
 
   const onUp = (ev) => {
@@ -1318,8 +1349,13 @@ function applyTextPanel() {
     if (!parent) return;
     if (activeTextPanel === existing) clearActiveTextPanel();
     existing.querySelectorAll(".text-panel-handle").forEach((h) => h.remove());
+    const body = existing.querySelector(":scope > .text-panel-body");
     const frag = document.createDocumentFragment();
-    while (existing.firstChild) frag.appendChild(existing.firstChild);
+    if (body) {
+      while (body.firstChild) frag.appendChild(body.firstChild);
+    } else {
+      while (existing.firstChild) frag.appendChild(existing.firstChild);
+    }
     parent.insertBefore(frag, existing);
     parent.removeChild(existing);
     parent.normalize();
@@ -1329,19 +1365,20 @@ function applyTextPanel() {
 
   const panel = document.createElement("div");
   panel.className = "text-panel";
+  const body = document.createElement("div");
+  body.className = "text-panel-body";
   setPanelOpacityStyle(panel, state.panelOpacity);
-  try {
-    range.surroundContents(panel);
-  } catch {
-    const contents = range.extractContents();
-    panel.appendChild(contents);
-    range.insertNode(panel);
-  }
+
+  const contents = range.extractContents();
+  body.appendChild(contents);
+  panel.appendChild(body);
+  range.insertNode(panel);
+
   ensurePanelResizeHandle(panel);
   setActiveTextPanel(panel);
 
   const next = document.createRange();
-  next.selectNodeContents(panel);
+  next.selectNodeContents(body);
   sel.removeAllRanges();
   sel.addRange(next);
   savedRange = next.cloneRange();
@@ -1355,10 +1392,45 @@ function applyAlign(align) {
     right: "justifyRight",
     justify: "justifyFull",
   };
-  // Restaurar selección/caret dentro de la hoja; la alineación actúa sobre el bloque
+
   if (!restoreSavedSelection()) {
     getActiveContent()?.focus();
   }
+
+  // Importante: execCommand(justify*) rompe el recuadro y saca el texto.
+  // Si estamos dentro de un text-panel, alineamos el propio recuadro.
+  const panel =
+    findTextPanelNearSelection() ||
+    (activeTextPanel && document.body.contains(activeTextPanel) ? activeTextPanel : null);
+
+  if (panel) {
+    ensurePanelBody(panel);
+    const body = panel.querySelector(":scope > .text-panel-body") || panel;
+    const cssAlign = align === "justify" ? "justify" : align;
+    body.style.textAlign = cssAlign;
+    panel.style.textAlign = cssAlign;
+    panel.style.display = "block";
+    panel.style.height = "auto";
+
+    if (align === "center") {
+      panel.style.marginLeft = "auto";
+      panel.style.marginRight = "auto";
+    } else if (align === "right") {
+      panel.style.marginLeft = "auto";
+      panel.style.marginRight = "0";
+    } else {
+      panel.style.marginLeft = "0";
+      panel.style.marginRight = "auto";
+    }
+
+    setActiveTextPanel(panel);
+    document.querySelectorAll("[data-align]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.align === align);
+    });
+    scheduleToolbarSync();
+    return;
+  }
+
   document.execCommand(map[align] || "justifyLeft", false, null);
   cacheSelectionIfEditable();
   document.querySelectorAll("[data-align]").forEach((btn) => {
