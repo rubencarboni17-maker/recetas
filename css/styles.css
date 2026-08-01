@@ -18,7 +18,7 @@
   --font-display: "Fraunces", Georgia, serif;
   --a4-w: 210mm;
   --a4-h: 297mm;
-  --topbar-h: 72px;
+  --topbar-h: 58px;
 }
 
 *,
@@ -459,7 +459,9 @@ body {
   flex-wrap: nowrap;
   align-items: end;
   gap: 7px;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
   padding: 5px 8px 6px;
   background: rgba(255, 255, 255, 0.55);
@@ -613,26 +615,21 @@ body {
 .topbar-actions {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-left: 0;
-  align-items: stretch;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-left: auto;
+  align-items: center;
   flex: 0 0 auto;
-  width: 168px;
-}
-
-.topbar-actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
+  width: auto;
 }
 
 .topbar-actions .btn {
-  padding: 6px 6px;
-  min-height: 30px;
-  font-size: 0.76rem;
+  padding: 6px 10px;
+  min-height: 32px;
+  font-size: 0.78rem;
   white-space: nowrap;
-  width: 100%;
+  width: auto;
   justify-content: center;
 }
 
@@ -1330,6 +1327,8 @@ body.is-exporting .text-panel-handle {
   .toolbar {
     order: 3;
     flex: 1 1 100%;
+    width: auto;
+    max-width: none;
     max-height: min(36vh, 260px);
     overflow: auto;
     flex-wrap: wrap;
@@ -1342,14 +1341,11 @@ body.is-exporting .text-panel-handle {
     margin-left: 0;
     width: 100%;
     min-width: 0;
-  }
-
-  .topbar-actions-grid {
-    grid-template-columns: 1fr 1fr;
+    flex-wrap: wrap;
   }
 
   .topbar-actions .btn {
-    flex: none;
+    flex: 1 1 calc(50% - 6px);
     min-height: 40px;
   }
 
