@@ -1095,10 +1095,10 @@ body {
   margin: 0.15em 0;
   padding: 0.55em 0.8em;
   border-radius: 12px;
-  background: rgba(255, 252, 247, 0.9);
+  background: rgba(255, 252, 247, 0.62);
   box-shadow:
-    0 0 0 1px rgba(26, 34, 28, 0.06),
-    0 8px 22px rgba(26, 34, 28, 0.08);
+    0 0 0 1px rgba(26, 34, 28, 0.05),
+    0 6px 18px rgba(26, 34, 28, 0.05);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -1369,9 +1369,9 @@ body {
   }
 
   .page-content .text-panel {
-    background: #fffcf7 !important;
+    background: rgba(255, 252, 247, 0.72) !important;
     box-shadow: none;
-    border: 1px solid rgba(26, 34, 28, 0.12);
+    border: 1px solid rgba(26, 34, 28, 0.1);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
