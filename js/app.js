@@ -772,7 +772,9 @@ function insertSelected() {
 let savedRange = null;
 let hintTimer = null;
 let toolbarSyncTimer = null;
-let lastTextPanel = null;
+/** Recuadro activo para recalibrar opacidad (se mantiene al usar el slider). */
+let activeTextPanel = null;
+let opacitySliderDragging = false;
 
 function flashFormatHint(message) {
   const el = $("formatHint");
@@ -977,14 +979,17 @@ function syncToolbarFromSelection() {
   const panelBtn = $("btnTextPanel");
   const panel = el.closest?.(".text-panel");
   if (panelBtn) panelBtn.classList.toggle("active", Boolean(panel));
-  lastTextPanel = panel || null;
+
+  // Solo actualizar el recuadro activo cuando encontramos uno (no borrarlo al ir al menú)
+  if (panel) setActiveTextPanel(panel);
 
   const opacityInput = $("panelOpacity");
   const opacityValue = $("panelOpacityValue");
-  if (opacityInput && document.activeElement !== opacityInput) {
+  if (opacityInput && document.activeElement !== opacityInput && !opacitySliderDragging) {
     let pct = state.panelOpacity;
-    if (panel) {
-      const fromPanel = readPanelOpacity(panel);
+    const panelForOpacity = panel || (activeTextPanel && document.body.contains(activeTextPanel) ? activeTextPanel : null);
+    if (panelForOpacity) {
+      const fromPanel = readPanelOpacity(panelForOpacity);
       if (fromPanel != null) pct = fromPanel;
     }
     opacityInput.value = String(pct);
@@ -1127,6 +1132,81 @@ function applyTextColor(value) {
   applyInlineStylesToSelection({ color: value });
 }
 
+function setActiveTextPanel(panel) {
+  if (activeTextPanel && activeTextPanel !== panel) {
+    activeTextPanel.classList.remove("is-active-panel");
+  }
+  activeTextPanel = panel && document.body.contains(panel) ? panel : null;
+  if (activeTextPanel) {
+    activeTextPanel.classList.add("is-active-panel");
+    ensurePanelResizeHandle(activeTextPanel);
+  }
+}
+
+function clearActiveTextPanel() {
+  if (activeTextPanel) activeTextPanel.classList.remove("is-active-panel");
+  activeTextPanel = null;
+}
+
+function ensurePanelResizeHandle(panel) {
+  if (!panel) return;
+  let handle = panel.querySelector(":scope > .text-panel-handle");
+  if (!handle) {
+    handle = document.createElement("span");
+    handle.className = "text-panel-handle";
+    handle.contentEditable = "false";
+    handle.title = "Arrastrá para agrandar o achicar el recuadro";
+    handle.setAttribute("aria-hidden", "true");
+    panel.appendChild(handle);
+  }
+}
+
+function startPanelResize(handle, e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const panel = handle.closest(".text-panel");
+  if (!panel) return;
+
+  setActiveTextPanel(panel);
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startW = panel.offsetWidth;
+  const startH = panel.offsetHeight;
+  const page = panel.closest(".page-content");
+  const maxW = page ? Math.floor(page.clientWidth * 0.98) : 800;
+
+  try {
+    handle.setPointerCapture(e.pointerId);
+  } catch {
+    /* ignore */
+  }
+  panel.classList.add("is-resizing");
+
+  const onMove = (ev) => {
+    const nextW = Math.min(maxW, Math.max(72, Math.round(startW + (ev.clientX - startX))));
+    const nextH = Math.max(40, Math.round(startH + (ev.clientY - startY)));
+    panel.style.width = `${nextW}px`;
+    panel.style.height = `${nextH}px`;
+  };
+
+  const onUp = (ev) => {
+    try {
+      handle.releasePointerCapture(ev.pointerId);
+    } catch {
+      /* ignore */
+    }
+    panel.classList.remove("is-resizing");
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp);
+  };
+
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+}
+
 function clampPanelOpacity(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return state.panelOpacity;
@@ -1139,9 +1219,11 @@ function panelBackground(opacityPct) {
 }
 
 function setPanelOpacityStyle(panel, opacityPct) {
+  if (!panel) return;
   const pct = clampPanelOpacity(opacityPct);
   panel.style.setProperty("--panel-alpha", String(pct / 100));
-  panel.style.background = panelBackground(pct);
+  // Important: forzar sobre la regla CSS del stylesheet
+  panel.style.setProperty("background", panelBackground(pct), "important");
   panel.dataset.opacity = String(pct);
 }
 
@@ -1166,45 +1248,52 @@ function syncPanelOpacityControls(pct) {
   const value = clampPanelOpacity(pct);
   const input = $("panelOpacity");
   const label = $("panelOpacityValue");
-  if (input) input.value = String(value);
+  if (input && document.activeElement !== input) input.value = String(value);
   if (label) label.textContent = `${value}%`;
 }
 
-function getPanelFromSelection() {
+function findTextPanelNearSelection() {
   const sel = window.getSelection();
   if (sel?.rangeCount) {
-    const el = nodeToElement(sel.focusNode || sel.anchorNode);
-    const live = el?.closest?.(".text-panel");
-    if (live) return live;
+    const nodes = [sel.focusNode, sel.anchorNode, sel.getRangeAt(0).commonAncestorContainer];
+    for (const node of nodes) {
+      const el = nodeToElement(node);
+      const panel = el?.closest?.(".text-panel");
+      if (panel) return panel;
+    }
   }
   if (savedRange) {
     const el = nodeToElement(savedRange.startContainer);
-    const fromSaved = el?.closest?.(".text-panel");
-    if (fromSaved) return fromSaved;
-  }
-  if (lastTextPanel && document.body.contains(lastTextPanel)) {
-    return lastTextPanel;
+    const panel = el?.closest?.(".text-panel");
+    if (panel) return panel;
   }
   return null;
 }
 
-/** Ajusta la opacidad del recuadro seleccionado (o el valor por defecto para nuevos). */
+function getPanelForOpacityEdit() {
+  if (activeTextPanel && document.body.contains(activeTextPanel)) {
+    return activeTextPanel;
+  }
+  const near = findTextPanelNearSelection();
+  if (near) {
+    setActiveTextPanel(near);
+    return near;
+  }
+  return null;
+}
+
+/** Ajusta la opacidad del recuadro activo (o el valor por defecto para nuevos). */
 function applyPanelOpacity(value) {
   const pct = clampPanelOpacity(value);
   state.panelOpacity = pct;
-  syncPanelOpacityControls(pct);
+  const label = $("panelOpacityValue");
+  if (label) label.textContent = `${pct}%`;
   savePrefs();
 
-  const panel = getPanelFromSelection();
+  const panel = getPanelForOpacityEdit();
   if (panel) {
     setPanelOpacityStyle(panel, pct);
-    return;
-  }
-
-  // Si hay selección guardada dentro de un recuadro, restaurar y aplicar
-  if (restoreSavedSelection()) {
-    const again = getPanelFromSelection();
-    if (again) setPanelOpacityStyle(again, pct);
+    setActiveTextPanel(panel);
   }
 }
 
@@ -1227,6 +1316,8 @@ function applyTextPanel() {
   if (existing && (!endEl || existing.contains(endEl))) {
     const parent = existing.parentNode;
     if (!parent) return;
+    if (activeTextPanel === existing) clearActiveTextPanel();
+    existing.querySelectorAll(".text-panel-handle").forEach((h) => h.remove());
     const frag = document.createDocumentFragment();
     while (existing.firstChild) frag.appendChild(existing.firstChild);
     parent.insertBefore(frag, existing);
@@ -1246,6 +1337,8 @@ function applyTextPanel() {
     panel.appendChild(contents);
     range.insertNode(panel);
   }
+  ensurePanelResizeHandle(panel);
+  setActiveTextPanel(panel);
 
   const next = document.createRange();
   next.selectNodeContents(panel);
@@ -1995,10 +2088,63 @@ function wireToolbar() {
     panelOpacity.value = String(state.panelOpacity);
     const label = $("panelOpacityValue");
     if (label) label.textContent = `${state.panelOpacity}%`;
+
+    const lockPanelFromUi = () => {
+      opacitySliderDragging = true;
+      const panel = findTextPanelNearSelection() || activeTextPanel;
+      if (panel && document.body.contains(panel)) setActiveTextPanel(panel);
+    };
+
+    panelOpacity.addEventListener("pointerdown", lockPanelFromUi);
+    panelOpacity.addEventListener("mousedown", lockPanelFromUi);
+    panelOpacity.addEventListener("touchstart", lockPanelFromUi, { passive: true });
     panelOpacity.addEventListener("input", (e) => {
+      opacitySliderDragging = true;
+      applyPanelOpacity(e.target.value);
+    });
+    const endDrag = () => {
+      opacitySliderDragging = false;
+    };
+    panelOpacity.addEventListener("pointerup", endDrag);
+    panelOpacity.addEventListener("mouseup", endDrag);
+    panelOpacity.addEventListener("touchend", endDrag);
+    panelOpacity.addEventListener("change", (e) => {
+      opacitySliderDragging = false;
       applyPanelOpacity(e.target.value);
     });
   }
+
+  // Clic en un recuadro → queda activo para recalibrar opacidad
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      const handle = e.target?.closest?.(".text-panel-handle");
+      if (handle) {
+        startPanelResize(handle, e);
+        return;
+      }
+
+      const panel = e.target?.closest?.(".text-panel");
+      if (panel?.closest?.(".page-content")) {
+        setActiveTextPanel(panel);
+        const pct = readPanelOpacity(panel);
+        if (pct != null) {
+          state.panelOpacity = pct;
+          syncPanelOpacityControls(pct);
+        }
+        return;
+      }
+      // Clic en la hoja fuera de un recuadro (y no en el slider)
+      if (
+        e.target?.closest?.(".page-content") &&
+        !e.target?.closest?.("#panelOpacity") &&
+        !opacitySliderDragging
+      ) {
+        clearActiveTextPanel();
+      }
+    },
+    true
+  );
 
   document.querySelectorAll("[data-align]").forEach((btn) => {
     btn.addEventListener("click", () => applyAlign(btn.dataset.align));
