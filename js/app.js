@@ -770,6 +770,7 @@ function insertSelected() {
 /** Última selección dentro de una hoja (los controles del toolbar la pierden al hacer clic). */
 let savedRange = null;
 let hintTimer = null;
+let toolbarSyncTimer = null;
 
 function flashFormatHint(message) {
   const el = $("formatHint");
@@ -794,19 +795,147 @@ function getSelectionEditable() {
   return el?.closest?.(".page-content") || null;
 }
 
+/** Elemento cuya tipografía se lee para el panel (caret o inicio de selección). */
+function getSelectionStyleElement() {
+  const sel = window.getSelection();
+  if (!sel?.rangeCount) return null;
+  const node = sel.focusNode || sel.anchorNode;
+  const el = nodeToElement(node);
+  if (!el?.closest?.(".page-content")) return null;
+  return el;
+}
+
+function rgbToHex(color) {
+  if (!color) return null;
+  if (color.startsWith("#")) return color.length >= 7 ? color.slice(0, 7) : color;
+  const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (!m) return null;
+  const hex = (n) => Number(n).toString(16).padStart(2, "0");
+  return `#${hex(m[1])}${hex(m[2])}${hex(m[3])}`;
+}
+
+function closestSelectOption(select, target, parse = Number) {
+  if (!select) return;
+  let best = null;
+  let bestDiff = Infinity;
+  const goal = parse(target);
+  if (!Number.isFinite(goal)) return;
+  for (const opt of select.options) {
+    const v = parse(opt.value);
+    if (!Number.isFinite(v)) continue;
+    const diff = Math.abs(v - goal);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = opt.value;
+    }
+  }
+  if (best != null) select.value = best;
+}
+
+function syncFontFamilyControl(computedFamily) {
+  const select = $("fontFamily");
+  if (!select || document.activeElement === select) return;
+  const fam = String(computedFamily || "").toLowerCase();
+  for (const opt of select.options) {
+    const first = opt.value
+      .split(",")[0]
+      .replace(/['"]/g, "")
+      .trim()
+      .toLowerCase();
+    if (first && fam.includes(first)) {
+      select.value = opt.value;
+      return;
+    }
+  }
+}
+
+/**
+ * Lee la tipografía en el caret/selección y actualiza el panel superior.
+ */
+function syncToolbarFromSelection() {
+  if (document.activeElement?.closest?.(".toolbar")) return;
+
+  const el = getSelectionStyleElement();
+  if (!el) return;
+
+  const cs = window.getComputedStyle(el);
+  const sizePx = Math.round(parseFloat(cs.fontSize));
+  if (Number.isFinite(sizePx) && sizePx > 0) {
+    syncFontSizeControls(`${sizePx}px`);
+  }
+
+  syncFontFamilyControl(cs.fontFamily);
+
+  const lhSelect = $("lineHeight");
+  if (lhSelect && document.activeElement !== lhSelect) {
+    const fontSize = parseFloat(cs.fontSize);
+    const lineHeight = parseFloat(cs.lineHeight);
+    if (Number.isFinite(fontSize) && Number.isFinite(lineHeight) && fontSize > 0) {
+      closestSelectOption(lhSelect, lineHeight / fontSize);
+    }
+  }
+
+  const colorInput = $("textColor");
+  if (colorInput && document.activeElement !== colorInput) {
+    const hex = rgbToHex(cs.color);
+    if (hex) colorInput.value = hex;
+  }
+
+  document.querySelectorAll(".toolbar [data-cmd]").forEach((btn) => {
+    const cmd = btn.dataset.cmd;
+    let on = false;
+    try {
+      on = document.queryCommandState(cmd);
+    } catch {
+      on = false;
+    }
+    btn.classList.toggle("active", on);
+  });
+
+  const alignMap = [
+    ["justifyLeft", "left"],
+    ["justifyCenter", "center"],
+    ["justifyRight", "right"],
+    ["justifyFull", "justify"],
+  ];
+  let activeAlign = "left";
+  for (const [cmd, align] of alignMap) {
+    try {
+      if (document.queryCommandState(cmd)) {
+        activeAlign = align;
+        break;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  document.querySelectorAll("[data-align]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.align === activeAlign);
+  });
+}
+
+function scheduleToolbarSync() {
+  clearTimeout(toolbarSyncTimer);
+  toolbarSyncTimer = setTimeout(syncToolbarFromSelection, 0);
+}
+
 function cacheSelectionIfEditable() {
   const sel = window.getSelection();
-  if (!sel?.rangeCount || sel.isCollapsed) return;
+  if (!sel?.rangeCount) return;
   const editable = getSelectionEditable();
   if (!editable) return;
   try {
-    savedRange = sel.getRangeAt(0).cloneRange();
+    // Solo guardar selección no vacía: el toolbar la necesita al hacer clic
+    if (!sel.isCollapsed) {
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
     const pages = [...document.querySelectorAll(".page-content")];
     const idx = pages.indexOf(editable);
     if (idx >= 0) state.activePageIndex = idx;
   } catch {
     /* ignore */
   }
+  scheduleToolbarSync();
 }
 
 function restoreSavedSelection() {
@@ -881,6 +1010,7 @@ function applyInlineStylesToSelection(styles) {
   sel.removeAllRanges();
   sel.addRange(next);
   savedRange = next.cloneRange();
+  scheduleToolbarSync();
   return true;
 }
 
@@ -941,6 +1071,7 @@ function runInlineCommand(cmd) {
   if (!requireTextSelection()) return;
   document.execCommand(cmd, false, null);
   cacheSelectionIfEditable();
+  scheduleToolbarSync();
 }
 
 function splitFragmentIntoLines(fragment) {
@@ -1647,6 +1778,22 @@ function wireToolbar() {
   document.querySelectorAll(".toolbar .icon-btn").forEach((btn) => {
     btn.addEventListener("mousedown", (e) => e.preventDefault());
   });
+
+  // Al hacer clic o moverse en la hoja, refrescar el panel (incluye caret sin selección)
+  document.addEventListener(
+    "mouseup",
+    (e) => {
+      if (e.target?.closest?.(".page-content")) scheduleToolbarSync();
+    },
+    true
+  );
+  document.addEventListener(
+    "keyup",
+    (e) => {
+      if (e.target?.closest?.(".page-content")) scheduleToolbarSync();
+    },
+    true
+  );
 
   $("btnAddPage").addEventListener("click", addPage);
   $("btnPrint").addEventListener("click", () => window.print());
