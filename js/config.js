@@ -11,7 +11,7 @@
  * Es una barrera básica, no seguridad bancaria.
  */
 window.RECETAS_CONFIG = {
-  appName: "Recetas A4",
+  appName: "Las recetas del Abuelo",
   requirePassword: true,
 
   /**

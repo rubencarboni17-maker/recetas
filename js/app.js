@@ -9,6 +9,7 @@ const DB_NAME = "recetas-a4";
 const DB_STORE = "backgrounds";
 const PREFS_KEY = "recetas_bg_prefs";
 const BG_BACKUP_KEY = "recetas_bgs_backup";
+const HIDDEN_REPO_BG_KEY = "recetas_hidden_repo_bgs";
 
 const state = {
   backgroundId: "plain",
@@ -261,6 +262,69 @@ function applyBackgroundToPages() {
   savePrefs();
 }
 
+function getHiddenRepoBackgroundIds() {
+  try {
+    const raw = localStorage.getItem(HIDDEN_REPO_BG_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenRepoBackgroundIds(ids) {
+  try {
+    localStorage.setItem(HIDDEN_REPO_BG_KEY, JSON.stringify(ids));
+  } catch {
+    /* ignore */
+  }
+}
+
+function hideRepoBackgroundLocally(id) {
+  const ids = getHiddenRepoBackgroundIds();
+  if (!ids.includes(id)) {
+    ids.push(id);
+    saveHiddenRepoBackgroundIds(ids);
+  }
+}
+
+function downloadCurrentRepoManifest() {
+  const manifest = {
+    backgrounds: state.repoBackgrounds.map((b) => ({
+      id: String(b.id).replace(/^repo-/, ""),
+      name: b.name.replace(/\s·\srepo$/, ""),
+      file: b.file || String(b.src || "").replace(/^.*backgrounds\//, ""),
+    })),
+  };
+  downloadBlob(
+    "manifest.json",
+    new Blob([JSON.stringify(manifest, null, 2)], {
+      type: "application/json;charset=utf-8",
+    })
+  );
+}
+
+async function removeRepoBackground(bg) {
+  const fileName = bg.file || "la imagen";
+  const ok = confirm(
+    `¿Quitar “${bg.name}” del listado del repositorio?\n\nSe descargará un manifest.json nuevo. Subilo a backgrounds/ en GitHub y borrá también el archivo “${fileName}” del repo.`
+  );
+  if (!ok) return;
+
+  state.repoBackgrounds = state.repoBackgrounds.filter((b) => b.id !== bg.id);
+  hideRepoBackgroundLocally(bg.id);
+
+  if (state.backgroundId === bg.id) {
+    state.backgroundId = state.repoBackgrounds[0]?.id || "plain";
+  }
+
+  downloadCurrentRepoManifest();
+  renderBackgroundGrid();
+  applyBackgroundToPages();
+  $("bgStatus").textContent =
+    `“${bg.name}” quitado. Subí el manifest.json descargado a backgrounds/ y eliminá “${fileName}” en GitHub.`;
+}
+
 function renderBackgroundGrid() {
   const grid = $("bgGrid");
   grid.innerHTML = "";
@@ -295,26 +359,28 @@ function renderBackgroundGrid() {
       applyBackgroundToPages();
     });
 
-    if (!bg.repo) {
-      const del = document.createElement("button");
-      del.type = "button";
-      del.className = "bg-delete";
-      del.title = "Quitar fondo local";
-      del.setAttribute("aria-label", `Eliminar ${bg.name}`);
-      del.textContent = "×";
-      del.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        state.customBackgrounds = state.customBackgrounds.filter((c) => c.id !== bg.id);
-        await deleteCustomBackground(bg.id);
-        if (state.backgroundId === bg.id) {
-          state.backgroundId = "plain";
-        }
-        renderBackgroundGrid();
-        applyBackgroundToPages();
-        $("bgStatus").textContent = `Se eliminó “${bg.name}” (solo local).`;
-      });
-      btn.appendChild(del);
-    }
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "bg-delete";
+    del.title = bg.repo ? "Quitar del repositorio" : "Quitar fondo local";
+    del.setAttribute("aria-label", `Eliminar ${bg.name}`);
+    del.textContent = "×";
+    del.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (bg.repo) {
+        await removeRepoBackground(bg);
+        return;
+      }
+      state.customBackgrounds = state.customBackgrounds.filter((c) => c.id !== bg.id);
+      await deleteCustomBackground(bg.id);
+      if (state.backgroundId === bg.id) {
+        state.backgroundId = "plain";
+      }
+      renderBackgroundGrid();
+      applyBackgroundToPages();
+      $("bgStatus").textContent = `Se eliminó “${bg.name}” (solo local).`;
+    });
+    btn.appendChild(del);
 
     grid.appendChild(btn);
   });
@@ -1209,30 +1275,63 @@ function isImageFile(file) {
   return /\.(jpe?g|png|webp)$/i.test(file.name || "");
 }
 
+function getAppBasePath() {
+  let path = window.location.pathname || "/";
+  if (path.endsWith(".html")) {
+    path = path.slice(0, path.lastIndexOf("/") + 1);
+  } else if (!path.endsWith("/")) {
+    path += "/";
+  }
+  return path;
+}
+
+function assetUrl(relativePath) {
+  const clean = String(relativePath || "").replace(/^\.\//, "");
+  return new URL(clean, window.location.origin + getAppBasePath()).href;
+}
+
 async function loadRepoBackgrounds() {
+  const manifestUrl = assetUrl("backgrounds/manifest.json");
   try {
-    const res = await fetch("backgrounds/manifest.json", { cache: "no-store" });
-    if (!res.ok) return [];
+    const res = await fetch(manifestUrl, { cache: "no-store" });
+    if (!res.ok) {
+      console.warn("Manifest no encontrado:", manifestUrl, res.status);
+      if ($("bgStatus")) {
+        $("bgStatus").textContent =
+          `No se encontró ${manifestUrl} (${res.status}). Revisá que exista backgrounds/manifest.json en el repo publicado.`;
+      }
+      return [];
+    }
     const data = await res.json();
     const list = Array.isArray(data?.backgrounds) ? data.backgrounds : [];
+    const hidden = new Set(getHiddenRepoBackgroundIds());
     return list
       .filter((b) => b && (b.file || b.src))
       .map((b, i) => {
         const file = b.file || b.src;
         const id = `repo-${b.id || file || i}`;
+        const src =
+          file.startsWith("http") || file.startsWith("data:")
+            ? file
+            : assetUrl(
+                file.startsWith("backgrounds/") ? file : `backgrounds/${file}`
+              );
         return {
           id,
           name: b.name || file,
           custom: true,
           repo: true,
-          file,
-          src: file.startsWith("http") || file.startsWith("backgrounds/")
-            ? file
-            : `backgrounds/${file}`,
+          file: file.replace(/^backgrounds\//, ""),
+          src,
         };
-      });
+      })
+      .filter((b) => !hidden.has(b.id));
   } catch (err) {
     console.warn("No se pudo leer backgrounds/manifest.json", err);
+    if ($("bgStatus")) {
+      $("bgStatus").textContent =
+        "Error al leer backgrounds/manifest.json. Mirá la consola para más detalle.";
+    }
     return [];
   }
 }

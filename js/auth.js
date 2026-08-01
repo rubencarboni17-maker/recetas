@@ -61,7 +61,7 @@
  * Subí este archivo a: js/config.js
  */
 window.RECETAS_CONFIG = {
-  appName: "Recetas A4",
+  appName: "Las recetas del Abuelo",
   requirePassword: true,
   accessKey: ${JSON.stringify(accessKey)},
   passwordHash: "",
@@ -190,7 +190,7 @@ window.RECETAS_CONFIG = {
 
   function initAuth() {
     const cfg = window.RECETAS_CONFIG || {};
-    const brand = cfg.appName || "Recetas A4";
+    const brand = cfg.appName || "Las recetas del Abuelo";
     const gateBrand = document.getElementById("gateBrand");
     const appTitle = document.getElementById("appTitle");
     if (gateBrand) gateBrand.textContent = brand;
