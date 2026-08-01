@@ -2014,20 +2014,20 @@ async function capturePageCanvases() {
   }
 }
 
-/** Encaja un canvas A4 dentro de un cuadrado 1080×1080 (sin cortar el contenido). */
-function fitCanvasIntoSquare(sourceCanvas, size = 1080) {
+/** Encaja un canvas A4 en el formato feed Instagram 1080×1440 (3:4), sin cortar contenido. */
+function fitCanvasIntoInstagramFeed(sourceCanvas, width = 1080, height = 1440) {
   const out = document.createElement("canvas");
-  out.width = size;
-  out.height = size;
+  out.width = width;
+  out.height = height;
   const ctx = out.getContext("2d");
   ctx.fillStyle = "#fffcf7";
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, width, height);
 
-  const scale = Math.min(size / sourceCanvas.width, size / sourceCanvas.height);
+  const scale = Math.min(width / sourceCanvas.width, height / sourceCanvas.height);
   const w = sourceCanvas.width * scale;
   const h = sourceCanvas.height * scale;
-  const x = (size - w) / 2;
-  const y = (size - h) / 2;
+  const x = (width - w) / 2;
+  const y = (height - h) / 2;
   ctx.drawImage(sourceCanvas, x, y, w, h);
   return out;
 }
@@ -2046,7 +2046,7 @@ async function exportA4AndInstagram() {
     btn.disabled = true;
     btn.dataset.busy = "1";
   }
-  setStatus("Generando A4 + Instagram…");
+  setStatus("Generando A4 + Instagram 3:4…");
 
   try {
     const canvases = await capturePageCanvases();
@@ -2067,11 +2067,11 @@ async function exportA4AndInstagram() {
     });
     a4.save(`${slug}-A4.pdf`);
 
-    // 2) Imagen(es) cuadrada(s) para Instagram (IG no usa PDF)
+    // 2) PNG 1080×1440 (3:4) para feed Instagram 2026
     for (let i = 0; i < canvases.length; i++) {
-      const square = fitCanvasIntoSquare(canvases[i], 1080);
+      const ig = fitCanvasIntoInstagramFeed(canvases[i], 1080, 1440);
       const blob = await new Promise((resolve) =>
-        square.toBlob((b) => resolve(b), "image/png")
+        ig.toBlob((b) => resolve(b), "image/png")
       );
       const suffix = canvases.length > 1 ? `-IG-${i + 1}` : "-IG";
       downloadBlob(`${slug}${suffix}.png`, blob);
@@ -2082,8 +2082,8 @@ async function exportA4AndInstagram() {
 
     setStatus(
       canvases.length > 1
-        ? `Listo: PDF A4 + ${canvases.length} PNG cuadrados (1080×1080) para Instagram.`
-        : "Listo: PDF A4 + PNG cuadrado (1080×1080) para Instagram."
+        ? `Listo: PDF A4 + ${canvases.length} PNG Instagram (1080×1440, 3:4).`
+        : "Listo: PDF A4 + PNG Instagram (1080×1440, 3:4)."
     );
     clearTimeout(hintTimer);
     hintTimer = setTimeout(() => hint?.classList.remove("visible"), 5000);
