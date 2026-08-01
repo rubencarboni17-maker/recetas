@@ -1154,8 +1154,18 @@ body {
   pointer-events: auto;
 }
 
-.mobile-nav {
-  display: none;
+body.is-exporting .page-content:focus {
+  box-shadow: none !important;
+}
+
+body.is-exporting .text-panel.is-active-panel {
+  box-shadow:
+    0 0 0 1px rgba(26, 34, 28, 0.06),
+    0 4px 14px rgba(26, 34, 28, 0.05);
+}
+
+body.is-exporting .text-panel-handle {
+  visibility: hidden !important;
 }
 
 /* Fondos */
