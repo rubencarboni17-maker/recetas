@@ -1,0 +1,17 @@
+{
+  "backgrounds": [
+    { "id": "fondo-1", "name": "Fondo 1", "file": "fondo_1.jpeg" },
+    { "id": "fondo-2", "name": "Fondo 2", "file": "fondo_2.jpeg" },
+    { "id": "fondo-3", "name": "Fondo 3", "file": "fondo_3.jpeg" },
+    { "id": "fondo-4", "name": "Fondo 4", "file": "fondo_4.jpeg" },
+    { "id": "fondo-5", "name": "Fondo 5", "file": "fondo_5.jpeg" },
+    { "id": "fondo-6", "name": "Fondo 6", "file": "fondo_6.jpeg" },
+    { "id": "fondo-7", "name": "Fondo 7", "file": "fondo_7.png" },
+    { "id": "fondo-8", "name": "Fondo 8", "file": "fondo_8.png" },
+    { "id": "fondo-9", "name": "Fondo 9", "file": "fondo_9.png" },
+    { "id": "fondo-10", "name": "Fondo 10", "file": "fondo_10.png" },
+    { "id": "fondo-11", "name": "Fondo 11", "file": "fondo_11.png" },
+    { "id": "fondo-12", "name": "Fondo 12", "file": "fondo_12.png" },
+    { "id": "fondo-13", "name": "Fondo 13", "file": "fondo_13.png" }
+  ]
+}
