@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232d6a4f'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="css/styles.css?v=18" />
+    <link rel="stylesheet" href="css/styles.css?v=19" />
     <style id="gate-critical">
       /* Estilos críticos del login: aseguran el layout aunque falle la caché del CSS */
       #gate.gate {
@@ -423,6 +423,19 @@
             </button>
           </div>
 
+          <label class="tool tool-panel-opacity" title="Opacidad del recuadro">
+            <span class="tool-label">Recuadro <span id="panelOpacityValue">62%</span></span>
+            <input
+              type="range"
+              id="panelOpacity"
+              min="10"
+              max="95"
+              step="1"
+              value="62"
+              aria-label="Opacidad del recuadro"
+            />
+          </label>
+
           <div class="tool-group" role="group" aria-label="Listas e sangría">
             <button type="button" class="icon-btn" id="btnBullets" title="Viñetas" aria-label="Agregar viñetas">
               <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -579,8 +592,8 @@
       </div>
     </div>
 
-    <script src="js/config.js?v=17"></script>
-    <script src="js/auth.js?v=17"></script>
-    <script type="module" src="js/app.js?v=17"></script>
+    <script src="js/config.js?v=19"></script>
+    <script src="js/auth.js?v=19"></script>
+    <script type="module" src="js/app.js?v=19"></script>
   </body>
 </html>
