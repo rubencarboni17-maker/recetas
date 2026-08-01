@@ -4,7 +4,6 @@
   const LEGACY_HASH = "recetas_pw_hash";
 
   function encodeKey(password) {
-    // Compatible con file://, http y https (sin Web Crypto)
     try {
       return "v1:" + btoa(unescape(encodeURIComponent(password)));
     } catch {
@@ -12,9 +11,14 @@
     }
   }
 
-  function getStoredKey() {
-    const fromConfig = (window.RECETAS_CONFIG?.passwordHash || "").trim();
-    if (fromConfig) return fromConfig;
+  window.encodeAccessKey = encodeKey;
+
+  function getRepoKey() {
+    const cfg = window.RECETAS_CONFIG || {};
+    return (cfg.accessKey || cfg.passwordHash || "").trim();
+  }
+
+  function getLocalKey() {
     try {
       return localStorage.getItem(STORAGE_KEY) || "";
     } catch {
@@ -22,7 +26,11 @@
     }
   }
 
-  function saveKey(password) {
+  function getStoredKey() {
+    return getRepoKey() || getLocalKey();
+  }
+
+  function saveLocalKey(password) {
     localStorage.setItem(STORAGE_KEY, encodeKey(password));
     try {
       localStorage.removeItem(LEGACY_HASH);
@@ -31,22 +39,62 @@
     }
   }
 
-  function clearAccess() {
+  function rememberSession() {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(LEGACY_HASH);
-      sessionStorage.removeItem(STORAGE_SESSION);
+      localStorage.setItem(STORAGE_SESSION, "1");
     } catch {
       /* ignore */
     }
   }
 
-  function unlockApp() {
+  function hasRememberedSession() {
     try {
-      sessionStorage.setItem(STORAGE_SESSION, "1");
+      return localStorage.getItem(STORAGE_SESSION) === "1";
     } catch {
-      /* ignore */
+      return false;
     }
+  }
+
+  function buildConfigFile(accessKey) {
+    return `/**
+ * Configuración del sitio (vive en el repositorio).
+ * Subí este archivo a: js/config.js
+ */
+window.RECETAS_CONFIG = {
+  appName: "Recetas A4",
+  requirePassword: true,
+  accessKey: ${JSON.stringify(accessKey)},
+  passwordHash: "",
+};
+`;
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: "application/javascript;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function offerRepoPasswordSave(accessKey) {
+    downloadText("config.js", buildConfigFile(accessKey));
+    showError(
+      "Contraseña lista. Se descargó config.js: reemplazá js/config.js en tu proyecto y subilo a GitHub Pages."
+    );
+    const error = document.getElementById("gateError");
+    if (error) {
+      error.style.color = "";
+      error.classList.add("gate-ok");
+    }
+  }
+
+  function unlockApp() {
+    rememberSession();
     const gate = document.getElementById("gate");
     const app = document.getElementById("app");
     if (gate) {
@@ -71,6 +119,7 @@
     error.textContent = message;
     error.hidden = false;
     error.style.display = "block";
+    error.classList.remove("gate-ok");
   }
 
   function hideError() {
@@ -78,6 +127,7 @@
     if (!error) return;
     error.hidden = true;
     error.style.display = "none";
+    error.classList.remove("gate-ok");
   }
 
   function tryLogin(password) {
@@ -88,32 +138,33 @@
       return false;
     }
 
-    const stored = getStoredKey();
-    const isSetup = !stored;
+    const repoKey = getRepoKey();
+    const localKey = getLocalKey();
+    const encoded = encodeKey(password);
 
-    if (isSetup) {
+    // Primera vez: no hay clave en repo ni local
+    if (!repoKey && !localKey) {
       try {
-        if (!(window.RECETAS_CONFIG?.passwordHash || "").trim()) {
-          saveKey(password);
-        }
+        saveLocalKey(password);
       } catch (err) {
         console.error(err);
-        showError(
-          "No se pudo guardar la contraseña. Desactivá el modo privado o probá otro navegador."
-        );
+        showError("No se pudo guardar la contraseña en este navegador.");
         return false;
       }
-      unlockApp();
+      offerRepoPasswordSave(encoded);
+      // Entrar igual; el usuario sube config.js al repo
+      setTimeout(unlockApp, 900);
       return true;
     }
 
-    // Solo aceptamos el formato nuevo. Si hay clave legacy, forzar reset.
-    if (!stored.startsWith("v1:") && !(window.RECETAS_CONFIG?.passwordHash || "").trim()) {
-      showError("La contraseña guardada es antigua. Tocá “Restablecer acceso” y creá una nueva.");
-      return false;
-    }
-
-    if (encodeKey(password) === stored || password === stored) {
+    const expected = repoKey || localKey;
+    if (encoded === expected || password === expected) {
+      // Si solo estaba en local, ofrecer de nuevo el config para el repo
+      if (!repoKey) {
+        offerRepoPasswordSave(encoded);
+        setTimeout(unlockApp, 900);
+        return true;
+      }
       unlockApp();
       return true;
     }
@@ -137,23 +188,15 @@
     }
 
     try {
-      if (sessionStorage.getItem(STORAGE_SESSION) === "1") {
-        unlockApp();
-        return;
-      }
+      localStorage.removeItem(LEGACY_HASH);
     } catch {
       /* ignore */
     }
 
-    // Migrar: si solo hay hash legacy, limpiar para no dejar al usuario trabado
-    try {
-      const hasNew = localStorage.getItem(STORAGE_KEY);
-      const hasLegacy = localStorage.getItem(LEGACY_HASH);
-      if (!hasNew && hasLegacy) {
-        localStorage.removeItem(LEGACY_HASH);
-      }
-    } catch {
-      /* ignore */
+    const stored = getStoredKey();
+    if (stored && hasRememberedSession()) {
+      unlockApp();
+      return;
     }
 
     const gate = document.getElementById("gate");
@@ -164,47 +207,35 @@
     const passwordInput = document.getElementById("gatePassword");
 
     if (!gate || !form || !passwordInput || !submit) {
-      console.error("Formulario de acceso incompleto");
       unlockApp();
       return;
     }
 
+    const oldReset = document.getElementById("gateReset");
+    if (oldReset) oldReset.remove();
+
     gate.hidden = false;
     gate.style.display = "";
     const app = document.getElementById("app");
-    if (app) {
-      app.hidden = true;
-    }
+    if (app) app.hidden = true;
 
-    const stored = getStoredKey();
     const isSetup = !stored;
 
     if (isSetup) {
       title.textContent = "Crear acceso";
       hint.textContent =
-        "Elegí una contraseña (mín. 4 caracteres). Se guarda solo en este navegador.";
+        "Elegí una contraseña. Se descargará config.js para que lo subas al repositorio (así queda en GitHub Pages).";
       submit.textContent = "Guardar y entrar";
+    } else if (!getRepoKey() && getLocalKey()) {
+      title.textContent = "Acceso";
+      hint.textContent =
+        "Tu clave está solo en este navegador. Al entrar se descargará config.js para subirla al repo.";
+      submit.textContent = "Entrar";
     } else {
       title.textContent = "Acceso";
       hint.textContent = "Ingresá tu contraseña para continuar.";
       submit.textContent = "Entrar";
     }
-
-    let resetBtn = document.getElementById("gateReset");
-    if (!resetBtn) {
-      resetBtn = document.createElement("button");
-      resetBtn.type = "button";
-      resetBtn.id = "gateReset";
-      resetBtn.className = "gate-reset";
-      form.appendChild(resetBtn);
-    }
-    resetBtn.textContent = "Restablecer acceso";
-    resetBtn.hidden = false;
-    resetBtn.style.display = "block";
-    resetBtn.onclick = function () {
-      clearAccess();
-      window.location.reload();
-    };
 
     function onSubmit(e) {
       if (e) e.preventDefault();
@@ -216,7 +247,6 @@
       e.preventDefault();
       onSubmit(e);
     });
-
     passwordInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -231,4 +261,3 @@
     initAuth();
   }
 })();
-

@@ -8,10 +8,12 @@ const PLAIN_BACKGROUND = { id: "plain", name: "Hoja blanca", custom: false, plai
 const DB_NAME = "recetas-a4";
 const DB_STORE = "backgrounds";
 const PREFS_KEY = "recetas_bg_prefs";
+const BG_BACKUP_KEY = "recetas_bgs_backup";
 
 const state = {
   backgroundId: "plain",
   customBackgrounds: [],
+  repoBackgrounds: [],
   bgFit: "cover",
   bgOverlay: 28,
   sections: [],
@@ -32,16 +34,20 @@ function escapeHtml(text) {
 }
 
 function allBackgrounds() {
-  return state.customBackgrounds;
+  return [...state.repoBackgrounds, ...state.customBackgrounds];
 }
 
 function getBackground(id) {
   if (id === "plain" || !id) return PLAIN_BACKGROUND;
-  return state.customBackgrounds.find((b) => b.id === id) || PLAIN_BACKGROUND;
+  return allBackgrounds().find((b) => b.id === id) || PLAIN_BACKGROUND;
 }
 
 function isCustomBackground(bg) {
-  return Boolean(bg?.custom && bg?.dataUrl);
+  return Boolean(bg?.custom && (bg?.dataUrl || bg?.src));
+}
+
+function backgroundImageValue(bg) {
+  return bg.dataUrl || bg.src || "";
 }
 
 function loadPrefs() {
@@ -83,37 +89,96 @@ function openDb() {
 }
 
 async function loadCustomBackgrounds() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, "readonly");
-    const store = tx.objectStore(DB_STORE);
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const items = (req.result || []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      resolve(items);
-    };
-    req.onerror = () => reject(req.error);
-  });
+  let items = [];
+  try {
+    const db = await openDb();
+    items = await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readonly");
+      const store = tx.objectStore(DB_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("IndexedDB no disponible, usando respaldo local", err);
+  }
+
+  if (!items.length) {
+    try {
+      const raw = localStorage.getItem(BG_BACKUP_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          items = parsed;
+          // Rehidratar IndexedDB en segundo plano
+          for (const bg of items) {
+            try {
+              await saveCustomBackground(bg, false);
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return items
+    .filter((b) => b && b.id && b.dataUrl)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-async function saveCustomBackground(bg) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, "readwrite");
-    tx.objectStore(DB_STORE).put(bg);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+async function backupBackgroundsToLocalStorage(list) {
+  try {
+    localStorage.setItem(BG_BACKUP_KEY, JSON.stringify(list));
+  } catch (err) {
+    // Cuota llena: guardar solo los más recientes hasta que entre
+    console.warn("No se pudo respaldar todos los fondos en localStorage", err);
+    const trimmed = [...list];
+    while (trimmed.length > 0) {
+      trimmed.pop();
+      try {
+        localStorage.setItem(BG_BACKUP_KEY, JSON.stringify(trimmed));
+        break;
+      } catch {
+        /* seguir recortando */
+      }
+    }
+  }
+}
+
+async function saveCustomBackground(bg, syncBackup = true) {
+  try {
+    const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put(bg);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn("No se pudo guardar en IndexedDB", err);
+  }
+  if (syncBackup) {
+    await backupBackgroundsToLocalStorage(state.customBackgrounds);
+  }
 }
 
 async function deleteCustomBackground(id) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, "readwrite");
-    tx.objectStore(DB_STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  try {
+    const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn(err);
+  }
+  await backupBackgroundsToLocalStorage(state.customBackgrounds);
 }
 
 function readFileAsDataUrl(file) {
@@ -180,7 +245,8 @@ function applyBackgroundToPages() {
     if (!pageBg || !overlay) return;
 
     if (custom) {
-      pageBg.style.backgroundImage = `url("${bg.dataUrl}")`;
+      const img = backgroundImageValue(bg);
+      pageBg.style.backgroundImage = img ? `url("${img}")` : "";
       pageBg.style.backgroundSize =
         state.bgFit === "fill" ? "100% 100%" : state.bgFit;
       overlay.style.opacity = String(state.bgOverlay / 100);
@@ -199,14 +265,15 @@ function renderBackgroundGrid() {
   const grid = $("bgGrid");
   grid.innerHTML = "";
 
-  if (!state.customBackgrounds.length) {
+  const list = allBackgrounds();
+  if (!list.length) {
     grid.classList.add("is-empty");
     return;
   }
 
   grid.classList.remove("is-empty");
 
-  state.customBackgrounds.forEach((bg) => {
+  list.forEach((bg) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "bg-option";
@@ -216,10 +283,10 @@ function renderBackgroundGrid() {
 
     const thumb = document.createElement("div");
     thumb.className = "bg-preview custom-thumb";
-    thumb.style.backgroundImage = `url("${bg.dataUrl}")`;
+    thumb.style.backgroundImage = `url("${backgroundImageValue(bg)}")`;
     const name = document.createElement("span");
     name.className = "bg-name";
-    name.textContent = bg.name;
+    name.textContent = bg.repo ? `${bg.name} · repo` : bg.name;
     btn.append(thumb, name);
 
     btn.addEventListener("click", () => {
@@ -228,24 +295,26 @@ function renderBackgroundGrid() {
       applyBackgroundToPages();
     });
 
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "bg-delete";
-    del.title = "Quitar fondo";
-    del.setAttribute("aria-label", `Eliminar ${bg.name}`);
-    del.textContent = "×";
-    del.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      await deleteCustomBackground(bg.id);
-      state.customBackgrounds = state.customBackgrounds.filter((c) => c.id !== bg.id);
-      if (state.backgroundId === bg.id) {
-        state.backgroundId = "plain";
-      }
-      renderBackgroundGrid();
-      applyBackgroundToPages();
-      $("bgStatus").textContent = `Se eliminó “${bg.name}”.`;
-    });
-    btn.appendChild(del);
+    if (!bg.repo) {
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "bg-delete";
+      del.title = "Quitar fondo local";
+      del.setAttribute("aria-label", `Eliminar ${bg.name}`);
+      del.textContent = "×";
+      del.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        state.customBackgrounds = state.customBackgrounds.filter((c) => c.id !== bg.id);
+        await deleteCustomBackground(bg.id);
+        if (state.backgroundId === bg.id) {
+          state.backgroundId = "plain";
+        }
+        renderBackgroundGrid();
+        applyBackgroundToPages();
+        $("bgStatus").textContent = `Se eliminó “${bg.name}” (solo local).`;
+      });
+      btn.appendChild(del);
+    }
 
     grid.appendChild(btn);
   });
@@ -259,7 +328,19 @@ function createPage(index) {
 
   const label = document.createElement("div");
   label.className = "page-label";
-  label.textContent = `Hoja ${index + 1}`;
+
+  const title = document.createElement("span");
+  title.className = "page-label-title";
+  title.textContent = `Hoja ${index + 1}`;
+
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "page-delete btn tiny ghost";
+  delBtn.textContent = "Eliminar";
+  delBtn.title = "Eliminar esta página";
+  delBtn.addEventListener("click", () => removePage(wrap));
+
+  label.append(title, delBtn);
 
   const page = document.createElement("div");
   page.className = "page";
@@ -277,12 +358,45 @@ function createPage(index) {
   content.contentEditable = "true";
   content.setAttribute("spellcheck", "true");
   content.addEventListener("focus", () => {
-    state.activePageIndex = index;
+    const pages = [...document.querySelectorAll(".page-wrap")];
+    state.activePageIndex = Math.max(0, pages.indexOf(wrap));
   });
 
   page.append(pageBg, overlay, content);
   wrap.append(label, page);
   return wrap;
+}
+
+function renumberPages() {
+  const wraps = [...document.querySelectorAll(".page-wrap")];
+  state.pageCount = wraps.length;
+  wraps.forEach((wrap, index) => {
+    wrap.dataset.index = String(index);
+    const title = wrap.querySelector(".page-label-title");
+    if (title) title.textContent = `Hoja ${index + 1}`;
+    const delBtn = wrap.querySelector(".page-delete");
+    if (delBtn) delBtn.hidden = wraps.length <= 1;
+  });
+  if (state.activePageIndex >= state.pageCount) {
+    state.activePageIndex = Math.max(0, state.pageCount - 1);
+  }
+}
+
+function removePage(wrap) {
+  const container = $("pages");
+  if (!container || container.children.length <= 1) {
+    flashFormatHint("Tiene que quedar al menos una hoja.");
+    return;
+  }
+  const wraps = [...container.querySelectorAll(".page-wrap")];
+  const index = wraps.indexOf(wrap);
+  wrap.remove();
+  renumberPages();
+  if (index >= 0 && index <= state.activePageIndex) {
+    state.activePageIndex = Math.max(0, state.activePageIndex - 1);
+  }
+  applyBackgroundToPages();
+  updatePageScale();
 }
 
 function ensurePages(count) {
@@ -291,7 +405,7 @@ function ensurePages(count) {
     const index = container.children.length;
     container.appendChild(createPage(index));
   }
-  state.pageCount = container.children.length;
+  renumberPages();
   applyBackgroundToPages();
 }
 
@@ -1095,6 +1209,122 @@ function isImageFile(file) {
   return /\.(jpe?g|png|webp)$/i.test(file.name || "");
 }
 
+async function loadRepoBackgrounds() {
+  try {
+    const res = await fetch("backgrounds/manifest.json", { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data?.backgrounds) ? data.backgrounds : [];
+    return list
+      .filter((b) => b && (b.file || b.src))
+      .map((b, i) => {
+        const file = b.file || b.src;
+        const id = `repo-${b.id || file || i}`;
+        return {
+          id,
+          name: b.name || file,
+          custom: true,
+          repo: true,
+          file,
+          src: file.startsWith("http") || file.startsWith("backgrounds/")
+            ? file
+            : `backgrounds/${file}`,
+        };
+      });
+  } catch (err) {
+    console.warn("No se pudo leer backgrounds/manifest.json", err);
+    return [];
+  }
+}
+
+function safeFileName(name, fallbackExt = "jpg") {
+  const base = String(name || "fondo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase()
+    .slice(0, 40);
+  return `${base || "fondo"}.${fallbackExt}`;
+}
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function downloadDataUrl(filename, dataUrl) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function buildRepoManifest(extraLocal = []) {
+  const fromRepo = state.repoBackgrounds.map((b) => ({
+    id: String(b.id).replace(/^repo-/, ""),
+    name: b.name.replace(/\s·\srepo$/, ""),
+    file: b.file || (b.src || "").replace(/^backgrounds\//, ""),
+  }));
+
+  const fromLocal = extraLocal.map((b) => ({
+    id: b.exportId || b.id.replace(/^custom-/, "local-"),
+    name: b.name,
+    file: b.exportFile || safeFileName(b.name, "jpg"),
+  }));
+
+  // Evitar duplicar por nombre de archivo
+  const seen = new Set(fromRepo.map((b) => b.file));
+  const merged = [...fromRepo];
+  for (const item of fromLocal) {
+    if (seen.has(item.file)) continue;
+    seen.add(item.file);
+    merged.push(item);
+  }
+
+  return {
+    backgrounds: merged,
+  };
+}
+
+function downloadManifestForRepo(extraLocal = []) {
+  const manifest = buildRepoManifest(extraLocal);
+  const text = JSON.stringify(manifest, null, 2);
+  downloadBlob(
+    "manifest.json",
+    new Blob([text], { type: "application/json;charset=utf-8" })
+  );
+}
+
+async function exportBackgroundsForRepo() {
+  const locals = state.customBackgrounds.filter((b) => b.dataUrl);
+  if (!locals.length && !state.repoBackgrounds.length) {
+    $("bgStatus").textContent = "No hay fondos para exportar.";
+    return;
+  }
+
+  const prepared = [];
+  for (const bg of locals) {
+    const exportFile = safeFileName(bg.name, bg.dataUrl.includes("image/png") ? "png" : "jpg");
+    const exportId = bg.id.replace(/^custom-/, "");
+    prepared.push({ ...bg, exportFile, exportId });
+    downloadDataUrl(exportFile, bg.dataUrl);
+    await new Promise((r) => setTimeout(r, 250));
+  }
+
+  downloadManifestForRepo(prepared);
+  $("bgStatus").textContent =
+    "Se descargaron las imágenes y manifest.json. Subilos a la carpeta backgrounds/ del repo y hacé push.";
+}
+
 async function importBackgroundFiles(files) {
   const list = [...files].filter(isImageFile);
   if (!list.length) {
@@ -1104,29 +1334,36 @@ async function importBackgroundFiles(files) {
 
   $("bgStatus").textContent = `Importando ${list.length} imagen${list.length === 1 ? "" : "es"}…`;
   let lastId = null;
+  const prepared = [];
 
   try {
     for (const file of list) {
       const dataUrl = await optimizeImage(file);
+      const name = file.name.replace(/\.[^.]+$/, "").slice(0, 28) || "Fondo";
+      const exportFile = safeFileName(name, file.type === "image/png" ? "png" : "jpg");
       const bg = {
         id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name.replace(/\.[^.]+$/, "").slice(0, 28) || "Fondo",
+        name,
         custom: true,
         dataUrl,
         createdAt: Date.now(),
+        exportFile,
+        exportId: exportFile.replace(/\.[^.]+$/, ""),
       };
-      await saveCustomBackground(bg);
       state.customBackgrounds.unshift(bg);
+      await saveCustomBackground(bg);
+      downloadDataUrl(exportFile, dataUrl);
+      prepared.push(bg);
       lastId = bg.id;
+      await new Promise((r) => setTimeout(r, 200));
     }
 
     if (lastId) state.backgroundId = lastId;
+    downloadManifestForRepo(prepared);
     renderBackgroundGrid();
     applyBackgroundToPages();
     $("bgStatus").textContent =
-      list.length === 1
-        ? `Fondo “${state.customBackgrounds[0]?.name}” importado.`
-        : `${list.length} fondos importados.`;
+      "Fondos listos. Se descargaron las imágenes + manifest.json: subilos a backgrounds/ en GitHub y hacé push.";
   } catch (err) {
     console.error(err);
     $("bgStatus").textContent = "No se pudo importar la imagen. Probá con un archivo más liviano.";
@@ -1209,6 +1446,11 @@ function wireToolbar() {
     $("overlayValue").textContent = `${state.bgOverlay}%`;
     applyBackgroundToPages();
   });
+
+  const exportBtn = $("btnExportBgs");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => exportBackgroundsForRepo());
+  }
 }
 
 function wireFileInputs() {
@@ -1242,7 +1484,15 @@ async function initApp() {
   loadPrefs();
 
   try {
+    state.repoBackgrounds = await loadRepoBackgrounds();
+  } catch (err) {
+    console.error(err);
+    state.repoBackgrounds = [];
+  }
+
+  try {
     state.customBackgrounds = await loadCustomBackgrounds();
+    await backupBackgroundsToLocalStorage(state.customBackgrounds);
   } catch (err) {
     console.error(err);
     state.customBackgrounds = [];
@@ -1250,9 +1500,9 @@ async function initApp() {
 
   if (
     state.backgroundId !== "plain" &&
-    !state.customBackgrounds.some((b) => b.id === state.backgroundId)
+    !allBackgrounds().some((b) => b.id === state.backgroundId)
   ) {
-    state.backgroundId = "plain";
+    state.backgroundId = state.repoBackgrounds[0]?.id || "plain";
   }
 
   renderBackgroundGrid();
@@ -1280,4 +1530,3 @@ document.addEventListener("recetas:ready", () => {
   initApp();
 });
 boot();
-

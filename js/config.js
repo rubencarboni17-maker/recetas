@@ -1,16 +1,26 @@
 /**
- * Configuración personal.
- * La contraseña se define la primera vez que abrís la app (se guarda solo en tu navegador).
- * GitHub Pages es público por URL: el acceso con contraseña es una barrera básica, no seguridad real.
+ * Configuración del sitio (esto SÍ vive en el repositorio / GitHub Pages).
+ *
+ * CONTRASEÑA EN EL REPO:
+ * 1. Abrí la app, creá tu contraseña (o usá la consola).
+ * 2. Se va a descargar un config.js nuevo, o generá la clave así:
+ *      En la consola del navegador:  encodeAccessKey("tu-clave")
+ * 3. Pegá el resultado en accessKey (abajo), guardá y subí este archivo a GitHub.
+ *
+ * Nota: cualquiera que vea el código del sitio puede intentar descifrar accessKey.
+ * Es una barrera básica, no seguridad bancaria.
  */
 window.RECETAS_CONFIG = {
   appName: "Recetas A4",
-  /** Si true, pide contraseña al entrar. */
   requirePassword: true,
+
   /**
-   * Opcional: hash SHA-256 de tu contraseña (hex).
-   * Si lo dejás vacío, la app te pedirá crear una la primera vez (localStorage).
-   * Generá uno en la consola: await window.hashPassword("tu-clave")
+   * Clave de acceso guardada en el repo.
+   * Formato: "v1:...." (la genera encodeAccessKey("tu-clave")).
+   * Si está vacío, la primera visita pide crear una (y te descarga este archivo listo).
    */
+  accessKey: "Mabila2806",
+
+  /** @deprecated Usá accessKey. Se mantiene por compatibilidad. */
   passwordHash: "",
 };
