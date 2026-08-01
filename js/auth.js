@@ -222,19 +222,19 @@ window.RECETAS_CONFIG = {
     const isSetup = !stored;
 
     if (isSetup) {
-      title.textContent = "Crear acceso";
+      title.textContent = "Bienvenido";
       hint.textContent =
         "Elegí una contraseña. Se descargará config.js para que lo subas al repositorio (así queda en GitHub Pages).";
-      submit.textContent = "Guardar y entrar";
+      submit.textContent = "Guardar y entrar a la cocina";
     } else if (!getRepoKey() && getLocalKey()) {
       title.textContent = "Acceso";
       hint.textContent =
         "Tu clave está solo en este navegador. Al entrar se descargará config.js para subirla al repo.";
-      submit.textContent = "Entrar";
+      submit.textContent = "Entrar a la cocina";
     } else {
       title.textContent = "Acceso";
       hint.textContent = "Ingresá tu contraseña para continuar.";
-      submit.textContent = "Entrar";
+      submit.textContent = "Entrar a la cocina";
     }
 
     function onSubmit(e) {
