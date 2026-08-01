@@ -795,11 +795,64 @@ function getSelectionEditable() {
   return el?.closest?.(".page-content") || null;
 }
 
-/** Elemento cuya tipografía se lee para el panel (caret o inicio de selección). */
+/** Elemento cuya tipografía se lee para el panel (caret o foco de la selección). */
 function getSelectionStyleElement() {
   const sel = window.getSelection();
   if (!sel?.rangeCount) return null;
-  const node = sel.focusNode || sel.anchorNode;
+
+  const range = sel.getRangeAt(0);
+
+  // 1) Punto visual de la selección/caret (más fiable con clics)
+  try {
+    const rects = range.getClientRects();
+    const rect =
+      (sel.isCollapsed ? rects[0] : rects[rects.length - 1]) ||
+      range.getBoundingClientRect();
+    if (rect && (rect.width > 0 || rect.height > 0)) {
+      const x = Math.min(rect.left + Math.max(rect.width / 2, 1), rect.right - 1);
+      const y = rect.top + Math.min(Math.max(rect.height / 2, 1), Math.max(rect.height - 1, 1));
+      const hit = document.elementFromPoint(x, y);
+      const inPage = hit?.closest?.(".page-content");
+      if (inPage && hit) {
+        // Evitar leer el contenedor raíz si hay un hijo de texto debajo
+        if (hit.classList?.contains("page-content")) {
+          /* caer al método por nodo */
+        } else {
+          return hit;
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 2) Nodo DOM del caret / extremo activo
+  let node = sel.isCollapsed
+    ? range.startContainer
+    : sel.focusNode || range.startContainer;
+  let offset = sel.isCollapsed
+    ? range.startOffset
+    : sel.focusOffset ?? range.startOffset;
+
+  if (node?.nodeType === Node.ELEMENT_NODE) {
+    const children = node.childNodes;
+    if (children.length) {
+      const idx =
+        offset >= children.length
+          ? children.length - 1
+          : offset > 0
+            ? offset - (sel.isCollapsed ? 1 : 0)
+            : 0;
+      node = children[Math.max(0, Math.min(idx, children.length - 1))] || node;
+    }
+  }
+
+  if (node?.nodeType === Node.ELEMENT_NODE) {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    const text = walker.nextNode();
+    if (text) node = text;
+  }
+
   const el = nodeToElement(node);
   if (!el?.closest?.(".page-content")) return null;
   return el;
@@ -853,14 +906,20 @@ function syncFontFamilyControl(computedFamily) {
  * Lee la tipografía en el caret/selección y actualiza el panel superior.
  */
 function syncToolbarFromSelection() {
-  if (document.activeElement?.closest?.(".toolbar")) return;
-
   const el = getSelectionStyleElement();
   if (!el) return;
 
   const cs = window.getComputedStyle(el);
   const sizePx = Math.round(parseFloat(cs.fontSize));
-  if (Number.isFinite(sizePx) && sizePx > 0) {
+  const sizeInput = $("fontSizeInput");
+
+  // Actualizar tamaño salvo que el usuario lo esté editando ahora
+  if (
+    Number.isFinite(sizePx) &&
+    sizePx > 0 &&
+    sizeInput &&
+    document.activeElement !== sizeInput
+  ) {
     syncFontSizeControls(`${sizePx}px`);
   }
 
@@ -916,7 +975,7 @@ function syncToolbarFromSelection() {
 
 function scheduleToolbarSync() {
   clearTimeout(toolbarSyncTimer);
-  toolbarSyncTimer = setTimeout(syncToolbarFromSelection, 0);
+  toolbarSyncTimer = setTimeout(syncToolbarFromSelection, 10);
 }
 
 function cacheSelectionIfEditable() {
@@ -1751,11 +1810,21 @@ function wireToolbar() {
 
   const fontSizeInput = $("fontSizeInput");
   const commitTypedSize = () => applyFontSize(fontSizeInput.value);
-  fontSizeInput.addEventListener("change", commitTypedSize);
+  // Solo aplicar si el usuario confirma en el campo (Enter) o elige de la lista
+  // con el input aún enfocado. Evita que, al hacer clic en la hoja, el blur
+  // reaparezca el tamaño anterior sobre otra selección.
+  fontSizeInput.addEventListener("change", () => {
+    if (document.activeElement === fontSizeInput) {
+      commitTypedSize();
+    } else {
+      scheduleToolbarSync();
+    }
+  });
   fontSizeInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       commitTypedSize();
+      fontSizeInput.blur();
     }
   });
 
@@ -1789,6 +1858,13 @@ function wireToolbar() {
   );
   document.addEventListener(
     "keyup",
+    (e) => {
+      if (e.target?.closest?.(".page-content")) scheduleToolbarSync();
+    },
+    true
+  );
+  document.addEventListener(
+    "click",
     (e) => {
       if (e.target?.closest?.(".page-content")) scheduleToolbarSync();
     },
