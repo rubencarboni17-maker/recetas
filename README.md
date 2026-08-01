@@ -1,84 +1,82 @@
 # Las recetas del Abuelo
 
-Herramienta personal (estática) para armar hojas A4 con fondo decorativo, extraer secciones de un PDF y formatear tipografía. Pensada para publicarse en **GitHub Pages**.
+Herramienta personal (estática) para armar hojas A4 con fondo decorativo, extraer texto de un PDF, formatear tipografía y exportar a **PDF A4** + **imagen Instagram (1080×1440)**. Pensada para **GitHub Pages**.
 
-## Persistencia en el repositorio (GitHub Pages)
+## Checklist de producción
 
-GitHub Pages es estático: **no puede guardar solo** desde el navegador. Por eso la app te prepara archivos para subirlos al repo.
+Antes de publicar, verificá:
 
-### Contraseña en el repo
-1. Entrá a la app y creá / ingresá tu contraseña.
-2. Se descarga `config.js` con tu `accessKey`.
-3. Reemplazá `js/config.js` en el proyecto y hacé **push** a GitHub.
-4. A partir de ahí la clave vive en el repositorio (cualquier dispositivo con esa web usa la misma).
+1. `js/config.js` tiene `accessKey` en formato `v1:...` (no texto plano).
+2. `backgrounds/manifest.json` lista todos los fondos y los archivos existen en `backgrounds/`.
+3. Los assets en `index.html` usan la misma versión de caché (`?v=N`) en CSS y JS.
+4. Existe `.nojekyll` en la raíz (GitHub Pages no debe procesar Jekyll).
+5. `robots.txt` con `Disallow: /` y meta `noindex` en el HTML.
+6. Probá en local: login → fondo → PDF → formato → Imprimir → **A4 + IG**.
 
-### Fondos en el repo
-1. Importá un JPG (o usá **Exportar fondos para el repo**).
-2. Se descargan las imágenes + `manifest.json`.
-3. Subilos a la carpeta `backgrounds/` del repo (dejá las imágenes junto a `manifest.json`).
-4. Hacé **push**. Al recargar la web, los fondos aparecen marcados como **repo**.
+## Cómo publicar en GitHub Pages
 
-Ejemplo de `backgrounds/manifest.json`:
-
-```json
-{
-  "backgrounds": [
-    { "id": "marmol", "name": "Mármol", "file": "marmol.jpg" }
-  ]
-}
-```
-
-> La contraseña en el frontend es solo una barrera básica: quien vea el código puede intentar obtenerla.
-3. Subís un **PDF**; la app lee el texto con PDF.js y lista **páginas completas** y **bloques**.
-4. Marcás las secciones y las **pegás** en la hoja editable.
-5. Ajustás **fuente, tamaño, interlineado, negrita/cursiva, alineación y color**.
-6. **Imprimís / guardás PDF** con el diálogo del navegador (hoja A4 sin márgenes de la app).
-
-## Privacidad (importante)
-
-GitHub Pages desde un repo **público** es accesible por URL. Esta app incluye:
-
-- `robots.txt` + `noindex` (evita indexación, no oculta la URL).
-- **Puerta con contraseña** en el navegador (barrera básica; el HTML/JS sigue siendo descargable).
-
-Opciones más serias:
-
-- Repo **privado** + GitHub Pages (requiere plan de pago de GitHub), o
-- No publicar y usarla solo en local / con un hosting privado.
-
-La primera vez que abras la página te pedirá **crear una contraseña** (queda en `localStorage` de ese navegador). También podés fijar un hash en `js/config.js` (`passwordHash`).
-
-## Cómo publicarla en GitHub Pages
-
-1. Creá un repo (idealmente con nombre poco obvio si querés discreción).
-2. Subí el contenido de esta carpeta a la rama `main`.
+1. Creá un repo (idealmente poco obvio o **privado** si tu plan lo permite).
+2. Subí **todo** el contenido de esta carpeta a la rama `main` (incluye `backgrounds/` con las imágenes).
 3. En el repo: **Settings → Pages → Build and deployment → Deploy from a branch** → `main` / `/ (root)`.
-4. Abrí la URL que te da GitHub y creá tu contraseña.
+4. Abrí la URL de Pages y entrà con tu contraseña.
+5. Si no ves cambios: Ctrl+F5 (caché del navegador).
 
-Estructura mínima:
+Estructura:
 
 ```
 /
   index.html
   robots.txt
+  .nojekyll
   css/styles.css
   js/config.js
   js/auth.js
   js/app.js
+  backgrounds/
+    manifest.json
+    fondo_1.jpeg … fondo_15.png
 ```
 
-## Uso local
+## Contraseña
 
-Abrí `index.html` con un servidor estático (los módulos ES + PDF.js no siempre funcionan con `file://`):
+1. En la consola: `encodeAccessKey("tu-clave")`.
+2. Pegá el resultado en `js/config.js` → `accessKey`.
+3. Subí el archivo al repo.
+
+> Barrera básica: el JS es público. No uses una clave importante en otro lado.
+
+Para pruebas locales sin login: `requirePassword: false` en `config.js` (no dejes eso en producción).
+
+## Fondos en el repo
+
+Los fondos del menú vienen de `backgrounds/manifest.json`. También podés importar imágenes en el navegador (IndexedDB, solo en ese equipo) y usar **Exportar fondos para el repo** para generar archivos a subir.
+
+## Uso local
 
 ```bash
 npx --yes serve .
 ```
 
-Luego visitá la URL que muestre la terminal.
+Abrí la URL que muestre la terminal (los módulos ES + PDF.js no siempre funcionan con `file://`).
+
+## Funciones principales
+
+- **Fondos**: galería del repo + import local, ajuste de encaje y veladura.
+- **PDF**: lectura con PDF.js → páginas/bloques → pegar en la hoja.
+- **Formato**: fuente, tamaño, interlineado, B/I/U, color, viñetas, sangría, alineación.
+- **Recuadro**: fondo semitransparente con opacidad y redimensionado.
+- **Exportar**: Imprimir (A4 del navegador) y **A4 + IG** (PDF + PNG 1080×1440 cover).
+- **Móvil**: navegación Materiales / Hoja A4.
+
+## Privacidad
+
+- `robots.txt` + `noindex` (no ocultan la URL).
+- Contraseña en el cliente (barrera básica).
+- Mejor opción: repo privado + Pages, o uso solo local.
 
 ## Notas
 
-- Los PDF escaneados (solo imagen, sin capa de texto) no aportan secciones; necesitás un PDF con texto seleccionable.
-- El formato se aplica sobre el área editable de cada hoja; podés agregar más páginas con **+ Página**.
-- Para desactivar la contraseña en pruebas: en `js/config.js` poné `requirePassword: false`.
+- PDF escaneados (solo imagen) no aportan texto seleccionable.
+- Los PNG grandes en `backgrounds/` pesan varios MB; la primera carga en Pages puede tardar.
+- Export **A4 + IG** descarga librerías desde jsDelivr la primera vez (hace falta red).
+- CDN usados: PDF.js, html2canvas, jsPDF (jsDelivr).
