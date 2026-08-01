@@ -538,6 +538,16 @@ body {
   text-transform: uppercase;
 }
 
+.tool-panel-opacity {
+  min-width: 118px;
+}
+
+.tool-panel-opacity input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .tool-divider {
   width: 1px;
   height: 34px;
@@ -1095,7 +1105,7 @@ body {
   margin: 0.15em 0;
   padding: 0.55em 0.8em;
   border-radius: 12px;
-  background: rgba(255, 252, 247, 0.62);
+  background: rgba(255, 252, 247, var(--panel-alpha, 0.62));
   box-shadow:
     0 0 0 1px rgba(26, 34, 28, 0.05),
     0 6px 18px rgba(26, 34, 28, 0.05);
@@ -1369,7 +1379,7 @@ body {
   }
 
   .page-content .text-panel {
-    background: rgba(255, 252, 247, 0.72) !important;
+    background: rgba(255, 252, 247, var(--panel-alpha, 0.72)) !important;
     box-shadow: none;
     border: 1px solid rgba(26, 34, 28, 0.1);
     -webkit-print-color-adjust: exact;
