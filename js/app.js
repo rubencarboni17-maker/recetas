@@ -7,9 +7,11 @@ const PLAIN_BACKGROUND = { id: "plain", name: "Hoja blanca", custom: false, plai
 
 const DB_NAME = "recetas-a4";
 const DB_STORE = "backgrounds";
+const DB_SETTINGS = "settings";
 const PREFS_KEY = "recetas_bg_prefs";
 const BG_BACKUP_KEY = "recetas_bgs_backup";
 const HIDDEN_REPO_BG_KEY = "recetas_hidden_repo_bgs";
+const DIR_HANDLE_KEY = "backgroundsDirHandle";
 
 const state = {
   backgroundId: "plain",
@@ -20,6 +22,7 @@ const state = {
   sections: [],
   activePageIndex: 0,
   pageCount: 1,
+  backgroundsDirHandle: null,
 };
 
 function $(id) {
@@ -77,16 +80,83 @@ function savePrefs() {
 
 function openDb() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, 2);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(DB_STORE)) {
         db.createObjectStore(DB_STORE, { keyPath: "id" });
       }
+      if (!db.objectStoreNames.contains(DB_SETTINGS)) {
+        db.createObjectStore(DB_SETTINGS);
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+/** Libera la cuota vieja: ya no guardamos imágenes en localStorage. */
+function clearLegacyLocalStorageBackup() {
+  try {
+    localStorage.removeItem(BG_BACKUP_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function idbGetSetting(key) {
+  try {
+    const db = await openDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_SETTINGS, "readonly");
+      const req = tx.objectStore(DB_SETTINGS).get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function idbSetSetting(key, value) {
+  try {
+    const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_SETTINGS, "readwrite");
+      tx.objectStore(DB_SETTINGS).put(value, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn("No se pudo guardar setting", key, err);
+  }
+}
+
+async function ensureDirPermission(handle, mode = "readwrite") {
+  if (!handle) return false;
+  const opts = { mode };
+  try {
+    if ((await handle.queryPermission(opts)) === "granted") return true;
+    if ((await handle.requestPermission(opts)) === "granted") return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+async function loadSavedBackgroundsDirectory() {
+  const handle = await idbGetSetting(DIR_HANDLE_KEY);
+  if (!handle) return null;
+  if (await ensureDirPermission(handle)) {
+    state.backgroundsDirHandle = handle;
+    return handle;
+  }
+  return null;
+}
+
+async function rememberBackgroundsDirectory(handle) {
+  state.backgroundsDirHandle = handle;
+  await idbSetSetting(DIR_HANDLE_KEY, handle);
 }
 
 async function loadCustomBackgrounds() {
@@ -101,21 +171,11 @@ async function loadCustomBackgrounds() {
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
-    console.warn("IndexedDB no disponible, usando respaldo local", err);
+    console.warn("IndexedDB no disponible", err);
   }
 
-  // El respaldo viejo podía tener dataURLs enormes; limpiar si ya hay IndexedDB
-  // o si el backup no trae imágenes (solo metadatos).
-  if (items.length) {
-    try {
-      const raw = localStorage.getItem(BG_BACKUP_KEY);
-      if (raw && raw.length > 200_000) {
-        localStorage.removeItem(BG_BACKUP_KEY);
-      }
-    } catch {
-      /* ignore */
-    }
-  } else {
+  // Migración única: backup viejo con dataURLs → IndexedDB, luego borrar localStorage.
+  if (!items.length) {
     try {
       const raw = localStorage.getItem(BG_BACKUP_KEY);
       if (raw) {
@@ -131,12 +191,6 @@ async function loadCustomBackgrounds() {
                 /* ignore */
               }
             }
-            // Liberar cuota: ya están en IndexedDB
-            try {
-              localStorage.removeItem(BG_BACKUP_KEY);
-            } catch {
-              /* ignore */
-            }
           }
         }
       }
@@ -145,44 +199,16 @@ async function loadCustomBackgrounds() {
     }
   }
 
+  clearLegacyLocalStorageBackup();
+
   return items
     .filter((b) => b && b.id && b.dataUrl)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-/**
- * Respaldo liviano en localStorage (sin dataURL).
- * Las imágenes viven en IndexedDB; localStorage solo guarda metadatos
- * por si hace falta recuperar la lista (no las fotos).
- */
-async function backupBackgroundsToLocalStorage(list) {
-  try {
-    localStorage.removeItem(BG_BACKUP_KEY);
-  } catch {
-    /* ignore */
-  }
-
-  const meta = (list || []).map((b) => ({
-    id: b.id,
-    name: b.name,
-    custom: true,
-    createdAt: b.createdAt || 0,
-    exportFile: b.exportFile || null,
-    exportId: b.exportId || null,
-    // Marca de que la imagen está en IndexedDB (no en localStorage)
-    hasImage: Boolean(b.dataUrl),
-  }));
-
-  try {
-    localStorage.setItem(BG_BACKUP_KEY, JSON.stringify(meta));
-  } catch (err) {
-    console.warn("No se pudo guardar metadatos de fondos en localStorage", err);
-    try {
-      localStorage.removeItem(BG_BACKUP_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
+/** Ya no respaldamos imágenes en localStorage (provocaba QuotaExceededError). */
+async function backupBackgroundsToLocalStorage() {
+  clearLegacyLocalStorageBackup();
 }
 
 async function saveCustomBackground(bg, syncBackup = true) {
@@ -325,7 +351,7 @@ function hideRepoBackgroundLocally(id) {
   }
 }
 
-function downloadCurrentRepoManifest() {
+async function saveCurrentRepoManifestToFolder() {
   const manifest = {
     backgrounds: state.repoBackgrounds.map((b) => ({
       id: String(b.id).replace(/^repo-/, ""),
@@ -333,18 +359,25 @@ function downloadCurrentRepoManifest() {
       file: b.file || String(b.src || "").replace(/^.*backgrounds\//, ""),
     })),
   };
-  downloadBlob(
-    "manifest.json",
-    new Blob([JSON.stringify(manifest, null, 2)], {
-      type: "application/json;charset=utf-8",
-    })
-  );
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], {
+    type: "application/json;charset=utf-8",
+  });
+
+  const dir = await getWritableBackgroundsDirectory({ forcePick: false });
+  if (!dir) return false;
+  try {
+    await writeFileToDirectory(dir, "manifest.json", blob);
+    return true;
+  } catch (err) {
+    console.warn(err);
+    return false;
+  }
 }
 
 async function removeRepoBackground(bg) {
   const fileName = bg.file || "la imagen";
   const ok = confirm(
-    `¿Quitar “${bg.name}” del listado del repositorio?\n\nSe descargará un manifest.json nuevo. Subilo a backgrounds/ en GitHub y borrá también el archivo “${fileName}” del repo.`
+    `¿Quitar “${bg.name}” del listado?\n\nSe oculta en este navegador. Si la carpeta backgrounds/ está vinculada, se actualiza el manifest ahí (sin descargar). Después borrá “${fileName}” en el repo y hacé push.`
   );
   if (!ok) return;
 
@@ -355,11 +388,12 @@ async function removeRepoBackground(bg) {
     state.backgroundId = state.repoBackgrounds[0]?.id || "plain";
   }
 
-  downloadCurrentRepoManifest();
+  const saved = await saveCurrentRepoManifestToFolder();
   renderBackgroundGrid();
   applyBackgroundToPages();
-  $("bgStatus").textContent =
-    `“${bg.name}” quitado. Subí el manifest.json descargado a backgrounds/ y eliminá “${fileName}” en GitHub.`;
+  $("bgStatus").textContent = saved
+    ? `“${bg.name}” quitado. manifest.json actualizado en backgrounds/. Borrá “${fileName}” y hacé push.`
+    : `“${bg.name}” quitado en este navegador. No se descargó nada. Actualizá backgrounds/manifest.json a mano si querés publicarlo.`;
 }
 
 function renderBackgroundGrid() {
@@ -1384,26 +1418,6 @@ function safeFileName(name, fallbackExt = "jpg") {
   return `${base || "fondo"}.${fallbackExt}`;
 }
 
-function downloadBlob(filename, blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
-}
-
-function downloadDataUrl(filename, dataUrl) {
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 function dataUrlToBlob(dataUrl) {
   const [header, data] = String(dataUrl).split(",");
   const mime = (header.match(/data:([^;]+)/) || [])[1] || "application/octet-stream";
@@ -1414,17 +1428,34 @@ function dataUrlToBlob(dataUrl) {
 }
 
 async function pickBackgroundsDirectory() {
-  if (!window.showDirectoryPicker) return null;
+  if (!window.showDirectoryPicker) {
+    $("bgStatus").textContent =
+      "Tu navegador no permite elegir carpeta. Usá Chrome o Edge, o copiá los archivos a mano a backgrounds/.";
+    return null;
+  }
   try {
-    return await window.showDirectoryPicker({
+    const handle = await window.showDirectoryPicker({
       id: "recetas-backgrounds",
       mode: "readwrite",
       startIn: "documents",
     });
+    await rememberBackgroundsDirectory(handle);
+    return handle;
   } catch (err) {
     if (err?.name === "AbortError") return null;
     throw err;
   }
+}
+
+async function getWritableBackgroundsDirectory({ forcePick = false } = {}) {
+  if (!forcePick) {
+    if (state.backgroundsDirHandle && (await ensureDirPermission(state.backgroundsDirHandle))) {
+      return state.backgroundsDirHandle;
+    }
+    const saved = await loadSavedBackgroundsDirectory();
+    if (saved) return saved;
+  }
+  return pickBackgroundsDirectory();
 }
 
 async function writeFileToDirectory(dirHandle, filename, blob) {
@@ -1447,7 +1478,6 @@ function buildRepoManifest(extraLocal = []) {
     file: b.exportFile || safeFileName(b.name, "jpg"),
   }));
 
-  // Evitar duplicar por nombre de archivo
   const seen = new Set(fromRepo.map((b) => b.file));
   const merged = [...fromRepo];
   for (const item of fromLocal) {
@@ -1456,79 +1486,73 @@ function buildRepoManifest(extraLocal = []) {
     merged.push(item);
   }
 
-  return {
-    backgrounds: merged,
-  };
+  return { backgrounds: merged };
 }
 
-function downloadManifestForRepo(extraLocal = []) {
-  const manifest = buildRepoManifest(extraLocal);
-  const text = JSON.stringify(manifest, null, 2);
-  downloadBlob(
-    "manifest.json",
-    new Blob([text], { type: "application/json;charset=utf-8" })
-  );
+function prepareLocalBackgroundsForExport(list = state.customBackgrounds) {
+  return list
+    .filter((b) => b.dataUrl)
+    .map((bg) => {
+      const exportFile =
+        bg.exportFile ||
+        safeFileName(bg.name, bg.dataUrl.includes("image/png") ? "png" : "jpg");
+      const exportId = bg.exportId || bg.id.replace(/^custom-/, "");
+      return { ...bg, exportFile, exportId };
+    });
 }
 
 /**
- * Exporta fondos al repo.
- * En Chrome/Edge: permite elegir la carpeta backgrounds/ y escribir ahí.
- * Si no: descarga los archivos (hay que copiarlos manualmente al repo).
+ * Escribe imágenes + manifest.json en la carpeta backgrounds/ del proyecto.
+ * Nunca dispara descargas al sistema.
  */
-async function exportBackgroundsForRepo() {
-  const locals = state.customBackgrounds.filter((b) => b.dataUrl);
-  if (!locals.length && !state.repoBackgrounds.length) {
-    $("bgStatus").textContent = "No hay fondos para exportar.";
-    return;
-  }
-
-  const prepared = [];
-  for (const bg of locals) {
-    const exportFile = safeFileName(bg.name, bg.dataUrl.includes("image/png") ? "png" : "jpg");
-    const exportId = bg.id.replace(/^custom-/, "");
-    prepared.push({ ...bg, exportFile, exportId });
-  }
+async function writeBackgroundsToRepoFolder(prepared, { forcePick = false } = {}) {
+  const dirHandle = await getWritableBackgroundsDirectory({ forcePick });
+  if (!dirHandle) return false;
 
   const manifest = buildRepoManifest(prepared);
   const manifestBlob = new Blob([JSON.stringify(manifest, null, 2)], {
     type: "application/json;charset=utf-8",
   });
 
-  $("bgStatus").textContent = "Preparando exportación…";
-
-  // Preferir escribir directo en la carpeta del repo
-  let dirHandle = null;
-  try {
-    dirHandle = await pickBackgroundsDirectory();
-  } catch (err) {
-    console.warn(err);
-  }
-
-  if (dirHandle) {
-    try {
-      for (const bg of prepared) {
-        await writeFileToDirectory(dirHandle, bg.exportFile, dataUrlToBlob(bg.dataUrl));
-      }
-      await writeFileToDirectory(dirHandle, "manifest.json", manifestBlob);
-      $("bgStatus").textContent =
-        "Listo: archivos escritos en la carpeta elegida. Hacé commit y push de backgrounds/.";
-      return;
-    } catch (err) {
-      console.error(err);
-      $("bgStatus").textContent =
-        "No se pudo escribir en esa carpeta. Se descargarán los archivos en su lugar…";
-    }
-  }
-
   for (const bg of prepared) {
-    downloadDataUrl(bg.exportFile, bg.dataUrl);
-    await new Promise((r) => setTimeout(r, 250));
+    await writeFileToDirectory(dirHandle, bg.exportFile, dataUrlToBlob(bg.dataUrl));
   }
-  downloadBlob("manifest.json", manifestBlob);
-  $("bgStatus").textContent =
-    "Se descargaron las imágenes + manifest.json. Copialos a la carpeta backgrounds/ del proyecto y hacé push. (En Chrome podés elegir la carpeta y se guardan solos.)";
+  await writeFileToDirectory(dirHandle, "manifest.json", manifestBlob);
+  return true;
 }
 
+/**
+ * Opcional: guardar una copia en la carpeta local backgrounds/.
+ * No descarga archivos a Descargas.
+ */
+async function exportBackgroundsForRepo() {
+  const prepared = prepareLocalBackgroundsForExport();
+  if (!prepared.length) {
+    $("bgStatus").textContent =
+      "No hay fondos locales para guardar. Importá uno primero (queda en el navegador).";
+    return;
+  }
+
+  $("bgStatus").textContent =
+    "Elegí la carpeta backgrounds/ del proyecto (no se descarga nada)…";
+
+  try {
+    const ok = await writeBackgroundsToRepoFolder(prepared, { forcePick: true });
+    if (ok) {
+      $("bgStatus").textContent =
+        "Guardado en la carpeta elegida (sin descargas). Para publicarlo: commit + push.";
+    } else {
+      $("bgStatus").textContent =
+        "Cancelado. No se descargó ni guardó nada.";
+    }
+  } catch (err) {
+    console.error(err);
+    $("bgStatus").textContent =
+      "No se pudo escribir en la carpeta. No se descargó nada.";
+  }
+}
+
+/** Importa al navegador (IndexedDB). Sin descargas ni escritura al disco. */
 async function importBackgroundFiles(files) {
   const list = [...files].filter(isImageFile);
   if (!list.length) {
@@ -1538,7 +1562,6 @@ async function importBackgroundFiles(files) {
 
   $("bgStatus").textContent = `Importando ${list.length} imagen${list.length === 1 ? "" : "es"}…`;
   let lastId = null;
-  const prepared = [];
 
   try {
     for (const file of list) {
@@ -1556,24 +1579,14 @@ async function importBackgroundFiles(files) {
       };
       state.customBackgrounds.unshift(bg);
       await saveCustomBackground(bg);
-      prepared.push(bg);
       lastId = bg.id;
     }
 
     if (lastId) state.backgroundId = lastId;
     renderBackgroundGrid();
     applyBackgroundToPages();
-
-    const exportNow = window.confirm(
-      `Se importaron ${prepared.length} fondo(s) en este navegador.\n\n¿Querés guardarlos ya en la carpeta backgrounds/ del repo?\n\n(En Chrome/Edge vas a poder elegir la carpeta. Si cancelás, quedan solo locales hasta que uses “Exportar fondos”.)`
-    );
-
-    if (exportNow) {
-      await exportBackgroundsForRepo();
-    } else {
-      $("bgStatus").textContent =
-        "Fondos listos en este navegador. Usá “Exportar fondos para el repo” para guardarlos en backgrounds/.";
-    }
+    $("bgStatus").textContent =
+      "Fondo listo en este navegador. No se descargó nada.";
   } catch (err) {
     console.error(err);
     $("bgStatus").textContent = "No se pudo importar la imagen. Probá con un archivo más liviano.";
@@ -1691,7 +1704,9 @@ function wireFileInputs() {
 }
 
 async function initApp() {
+  clearLegacyLocalStorageBackup();
   loadPrefs();
+  await loadSavedBackgroundsDirectory();
 
   try {
     state.repoBackgrounds = await loadRepoBackgrounds();
@@ -1702,7 +1717,7 @@ async function initApp() {
 
   try {
     state.customBackgrounds = await loadCustomBackgrounds();
-    await backupBackgroundsToLocalStorage(state.customBackgrounds);
+    await backupBackgroundsToLocalStorage();
   } catch (err) {
     console.error(err);
     state.customBackgrounds = [];
